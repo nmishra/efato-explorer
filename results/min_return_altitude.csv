@@ -1,0 +1,85 @@
+wind,headwind_kt,bank_deg,reaction_s,min_return_agl_ft
+tailwind 8 kt,-8,30,2,1475
+tailwind 8 kt,-8,30,3,1450
+tailwind 8 kt,-8,30,4,1425
+tailwind 8 kt,-8,30,5,1425
+tailwind 8 kt,-8,30,6,1400
+tailwind 8 kt,-8,30,8,nan
+tailwind 8 kt,-8,30,10,nan
+tailwind 8 kt,-8,45,2,1075
+tailwind 8 kt,-8,45,3,1000
+tailwind 8 kt,-8,45,4,1000
+tailwind 8 kt,-8,45,5,1225
+tailwind 8 kt,-8,45,6,1225
+tailwind 8 kt,-8,45,8,1175
+tailwind 8 kt,-8,45,10,1150
+tailwind 8 kt,-8,60,2,1125
+tailwind 8 kt,-8,60,3,1100
+tailwind 8 kt,-8,60,4,1075
+tailwind 8 kt,-8,60,5,1075
+tailwind 8 kt,-8,60,6,1075
+tailwind 8 kt,-8,60,8,nan
+tailwind 8 kt,-8,60,10,nan
+calm,0,30,2,1250
+calm,0,30,3,1425
+calm,0,30,4,1425
+calm,0,30,5,1400
+calm,0,30,6,1400
+calm,0,30,8,1350
+calm,0,30,10,1525
+calm,0,45,2,975
+calm,0,45,3,1075
+calm,0,45,4,1100
+calm,0,45,5,1150
+calm,0,45,6,1150
+calm,0,45,8,1000
+calm,0,45,10,1100
+calm,0,60,2,1025
+calm,0,60,3,1075
+calm,0,60,4,1100
+calm,0,60,5,1125
+calm,0,60,6,1175
+calm,0,60,8,1200
+calm,0,60,10,1125
+headwind 9 kt,9,30,2,1250
+headwind 9 kt,9,30,3,1225
+headwind 9 kt,9,30,4,1225
+headwind 9 kt,9,30,5,1275
+headwind 9 kt,9,30,6,1325
+headwind 9 kt,9,30,8,1400
+headwind 9 kt,9,30,10,1375
+headwind 9 kt,9,45,2,950
+headwind 9 kt,9,45,3,1025
+headwind 9 kt,9,45,4,1025
+headwind 9 kt,9,45,5,975
+headwind 9 kt,9,45,6,950
+headwind 9 kt,9,45,8,1025
+headwind 9 kt,9,45,10,1125
+headwind 9 kt,9,60,2,1050
+headwind 9 kt,9,60,3,975
+headwind 9 kt,9,60,4,1000
+headwind 9 kt,9,60,5,1000
+headwind 9 kt,9,60,6,1050
+headwind 9 kt,9,60,8,1075
+headwind 9 kt,9,60,10,1125
+headwind 16 kt,16,30,2,1250
+headwind 16 kt,16,30,3,1225
+headwind 16 kt,16,30,4,1225
+headwind 16 kt,16,30,5,1200
+headwind 16 kt,16,30,6,1250
+headwind 16 kt,16,30,8,1350
+headwind 16 kt,16,30,10,1325
+headwind 16 kt,16,45,2,875
+headwind 16 kt,16,45,3,950
+headwind 16 kt,16,45,4,1000
+headwind 16 kt,16,45,5,975
+headwind 16 kt,16,45,6,950
+headwind 16 kt,16,45,8,1000
+headwind 16 kt,16,45,10,1075
+headwind 16 kt,16,60,2,950
+headwind 16 kt,16,60,3,975
+headwind 16 kt,16,60,4,1000
+headwind 16 kt,16,60,5,1025
+headwind 16 kt,16,60,6,1075
+headwind 16 kt,16,60,8,1050
+headwind 16 kt,16,60,10,1050

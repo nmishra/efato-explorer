@@ -1,0 +1,144 @@
+{
+  "_note": "KSJC Norman Y. Mineta San Jose Intl. Dimensions are approximate -- verify with the current Chart Supplement / airport diagram. Headings are not needed: winds are expressed as components relative to the runway.",
+  "icao": "KSJC",
+  "elevation_ft": 62,
+  "runways": {
+    "12L": {
+      "length_ft": 11000,
+      "width_ft": 150,
+      "parallel": "12R",
+      "parallel_side": 1,
+      "ahead_notes": "SE of airport: dense urban San Jose (downtown, I-880, Hwy 87, Coleman/Guadalupe corridor) -- very few off-airport options."
+    },
+    "12R": {
+      "length_ft": 11000,
+      "width_ft": 150,
+      "parallel": "12L",
+      "parallel_side": -1,
+      "ahead_notes": "SE of airport: dense urban San Jose -- very few off-airport options."
+    },
+    "30L": {
+      "length_ft": 11000,
+      "width_ft": 150,
+      "parallel": "30R",
+      "parallel_side": 1,
+      "ahead_notes": "NW of airport: Guadalupe Slough / Alviso salt ponds / SF Bay shoreline -- water and marsh beyond the runway end; limited roads."
+    },
+    "30R": {
+      "length_ft": 11000,
+      "width_ft": 150,
+      "parallel": "30L",
+      "parallel_side": -1,
+      "ahead_notes": "NW of airport: Guadalupe Slough / Alviso salt ponds / SF Bay shoreline."
+    }
+  },
+  "parallel_spacing_ft": 748,
+  "infield_halfwidth_ft": 1000,
+  "_infield_note": "Half-width of airport property around the runway centerline treated as 'on-airport' for CAPS canopy touchdown. Crude -- refine from the airport diagram.",
+  "default_wind_scenarios": {
+    "30R": [
+      {
+        "name": "NW sea breeze 10 kt",
+        "headwind_kt": 9,
+        "crosswind_kt": -4
+      },
+      {
+        "name": "NW sea breeze 18 kt",
+        "headwind_kt": 16,
+        "crosswind_kt": -8
+      },
+      {
+        "name": "calm",
+        "headwind_kt": 0,
+        "crosswind_kt": 0
+      }
+    ],
+    "30L": [
+      {
+        "name": "NW sea breeze 10 kt",
+        "headwind_kt": 9,
+        "crosswind_kt": -4
+      },
+      {
+        "name": "NW sea breeze 18 kt",
+        "headwind_kt": 16,
+        "crosswind_kt": -8
+      },
+      {
+        "name": "calm",
+        "headwind_kt": 0,
+        "crosswind_kt": 0
+      }
+    ],
+    "12R": [
+      {
+        "name": "SE flow 10 kt",
+        "headwind_kt": 9,
+        "crosswind_kt": 4
+      },
+      {
+        "name": "calm",
+        "headwind_kt": 0,
+        "crosswind_kt": 0
+      },
+      {
+        "name": "NW tailwind 8 kt",
+        "headwind_kt": -8,
+        "crosswind_kt": 0
+      }
+    ],
+    "12L": [
+      {
+        "name": "SE flow 10 kt",
+        "headwind_kt": 9,
+        "crosswind_kt": 4
+      },
+      {
+        "name": "calm",
+        "headwind_kt": 0,
+        "crosswind_kt": 0
+      },
+      {
+        "name": "NW tailwind 8 kt",
+        "headwind_kt": -8,
+        "crosswind_kt": 0
+      }
+    ]
+  },
+  "departure_points": {
+    "_note": "remaining_ft = pavement left ahead of brake release. Full-length = runway length. Shorter values emulate intersection departures (check the diagram for actual taxiway intersections).",
+    "remaining_ft": [
+      11000,
+      8000,
+      6000,
+      4000
+    ]
+  },
+  "_geo_note": "Thresholds (lat/lon of the pavement end the takeoff roll starts from) and true headings from OurAirports (FAA-derived). 12L/30R and 12R/30L are both 11,000 ft; displaced thresholds (landing only) are ignored. Spacing 748 ft computed from the coordinates.",
+  "geo": {
+    "12L": {
+      "lat": 37.375,
+      "lon": -121.94000244,
+      "hdg": 139.0
+    },
+    "12R": {
+      "lat": 37.37369918,
+      "lon": -121.94200135,
+      "hdg": 138.8
+    },
+    "30R": {
+      "lat": 37.35229874,
+      "lon": -121.91500092,
+      "hdg": 319.0
+    },
+    "30L": {
+      "lat": 37.35100174,
+      "lon": -121.91699981,
+      "hdg": 318.8
+    }
+  },
+  "arp": {
+    "lat": 37.3626,
+    "lon": -121.9291
+  }
+}

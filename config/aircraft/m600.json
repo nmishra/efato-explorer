@@ -1,0 +1,44 @@
+{
+ "_note": "APPROXIMATE values -- verify against your POH/AFM.",
+ "id": "m600",
+ "name": "Piper M600 (turboprop)",
+ "max_weight_lb": 6000,
+ "ref_weight_lb": 6000,
+ "wing_area_ft2": 200,
+ "takeoff": {
+  "vr_kias": 80,
+  "vy_kias": 120,
+  "roc_ref_fpm": 1200,
+  "ground_roll_ref_ft": 1700,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 0.8
+ },
+ "glide": {
+  "vbg_kias_ref": 105,
+  "glide_ratio_ref": 12.0
+ },
+ "stall_kias_ref": {
+  "0": 76,
+  "50": 70,
+  "100": 64
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": 1700,
+  "touchdown_kias": 80,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ }
+}
