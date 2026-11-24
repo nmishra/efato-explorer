@@ -1,0 +1,56 @@
+{
+ "id": "m500",
+ "name": "Piper M500 (turboprop)",
+ "max_weight_lb": 5092,
+ "ref_weight_lb": 5092,
+ "wing_area_ft2": null,
+ "takeoff": {
+  "vr_kias": null,
+  "vy_kias": 125,
+  "roc_ref_fpm": null,
+  "ground_roll_ref_ft": null,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 0.9
+ },
+ "glide": {
+  "vbg_kias_ref": 127,
+  "glide_ratio_ref": null
+ },
+ "stall_kias_ref": {
+  "0": 79,
+  "50": null,
+  "100": 69
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": null,
+  "touchdown_kias": null,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {
+  "stall": "Sec 3.3: 5092 lb, gear up flaps 0 = 79 KIAS; gear down flaps 36 = 69 KIAS",
+  "glide": "Sec 3.3: best glide (propeller feathered) 127 KIAS",
+  "vy": "Sec 3 / 4: best rate of climb Vy 125 KIAS"
+ },
+ "_missing": [
+  "Rotation speed",
+  "Climb rate at Vy",
+  "Takeoff ground roll",
+  "Glide ratio (Sec 5 glide distance chart)",
+  "Stall speed with takeoff flaps",
+  "Landing ground roll and approach speed"
+ ]
+}

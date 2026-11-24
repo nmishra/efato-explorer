@@ -127,6 +127,7 @@ textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
           <label>Takeoff climb speed (KIAS)<input id="f_vy" type="number"></label>
           <label>Climb rate at that speed (fpm)<input id="f_roc" type="number"></label>
           <label>Takeoff ground roll (ft)<input id="f_gr" type="number"></label>
+          <label>…or takeoff distance over 50 ft (ft)<input id="f_to50" type="number"></label>
           <label>Best glide speed (KIAS)<input id="f_vbg" type="number"></label>
           <label>Glide ratio (L/D)<input id="f_ld" type="number" step="0.1"></label>
           <label>…or glide NM per 1000 ft<input id="f_nm" type="number" step="0.01"></label>
@@ -134,6 +135,7 @@ textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
           <label>Stall, takeoff flaps (KIAS)<input id="f_vs50" type="number"></label>
           <label>Stall, landing flaps (KIAS)<input id="f_vs100" type="number"></label>
           <label>Landing ground roll (ft)<input id="f_lr" type="number"></label>
+          <label>…or landing distance from 50 ft (ft)<input id="f_ld50" type="number"></label>
           <label>Approach / touchdown speed (KIAS)<input id="f_vtd" type="number"></label>
           <label class="chk"><input id="f_caps" type="checkbox"> Has airframe parachute</label>
           <label>Parachute: your minimum AGL (ft)<input id="f_cmin" type="number"></label>
@@ -214,8 +216,13 @@ function fillForm(p){$('f_name').value=p.name||'';FIELDS.forEach(([id,g])=>{cons
 function readForm(){const n=id=>parseFloat($(id).value);const miss=[];
   const need=(id,label)=>{const v=n(id);if(!(v>0))miss.push(label);return v;};
   const mtow=need('f_mtow','max weight'),wing=n('f_wing')>0?n('f_wing'):null,vr=need('f_vr','rotation speed'),vy=need('f_vy','climb speed'),roc=need('f_roc','climb rate'),
-    gr=need('f_gr','takeoff ground roll'),vbg=need('f_vbg','best glide speed'),vs0=need('f_vs0','stall flaps up'),vs50=need('f_vs50','stall takeoff flaps'),
-    vs100=need('f_vs100','stall landing flaps'),lr=need('f_lr','landing roll'),vtd=need('f_vtd','touchdown speed');
+    roc50=null,vbg=need('f_vbg','best glide speed'),vs0=need('f_vs0','stall flaps up'),vs50=need('f_vs50','stall takeoff flaps'),
+    vs100=need('f_vs100','stall landing flaps'),vtd=need('f_vtd','touchdown speed');
+  let gr=n('f_gr'),lr=n('f_lr');const src={};
+  if(!(gr>0)&&n('f_to50')>0&&roc>0&&vy>0){const g=Math.asin(Math.min(.5,(roc/60)/(vy*1.68781)));gr=n('f_to50')-50/Math.tan(g);src.ground_roll=`Estimated: POH distance over 50 ft (${n('f_to50')} ft) minus ${Math.round(50/Math.tan(g))} ft airborne to 50 ft`;if(!(gr>200))miss.push('a takeoff distance over 50 ft that is longer than the airborne distance');}
+  if(!(gr>0)&&!src.ground_roll)miss.push('takeoff ground roll (or distance over 50 ft)');
+  if(!(lr>0)&&n('f_ld50')>0){lr=n('f_ld50')-50/Math.tan(3*Math.PI/180);src.landing=`Estimated: POH distance from 50 ft (${n('f_ld50')} ft) minus 954 ft airborne on a 3 degree path`;if(!(lr>200))miss.push('a landing distance from 50 ft that is longer than 954 ft');}
+  if(!(lr>0)&&!src.landing)miss.push('landing ground roll (or distance from 50 ft)');
   let ld=n('f_ld');if(!(ld>0)){const nm=n('f_nm');if(nm>0)ld=nm*NM/1000;}if(!(ld>0))miss.push('glide ratio (or NM per 1000 ft)');
   let caps=null;if($('f_caps').checked){const cm=need('f_cmin','parachute minimum AGL'),cs=need('f_cspd','parachute max speed'),cl=need('f_closs','parachute altitude loss'),cd=need('f_cdesc','parachute descent rate');
     caps={max_deploy_kias:cs,min_agl_level_ft:cm,altitude_loss_to_inflate_ft:cl,descent_rate_fpm:cd,inflation_time_s:8,forward_travel_ft:600,decision_time_after_recognition_s:2};}
@@ -223,7 +230,7 @@ function readForm(){const n=id=>parseFloat($(id).value);const miss=[];
   return {p:{id:'unsaved',name:$('f_name').value.trim()||'My aircraft',max_weight_lb:mtow,ref_weight_lb:mtow,wing_area_ft2:wing,
     takeoff:{vr_kias:vr,vy_kias:vy,roc_ref_fpm:roc,ground_roll_ref_ft:gr,ground_roll_weight_exp:1.8,ground_roll_sigma_exp:1.0},
     glide:{vbg_kias_ref:vbg,glide_ratio_ref:ld},stall_kias_ref:{'0':vs0,'50':vs50,'100':vs100},flap_cd0_delta:{'0':0,'50':0.012,'100':0.04},
-    landing:{roll_ref_ft:lr,touchdown_kias:vtd,roll_margin_factor:1.25},caps,pilot:CFG.aircraft[CFG.order[0]].pilot}};}
+    landing:{roll_ref_ft:lr,touchdown_kias:vtd,roll_margin_factor:1.25},caps,pilot:CFG.aircraft[CFG.order[0]].pilot,_sources:Object.keys(src).length?src:undefined}};}
 // ---------------------------------------------------------------- airport database (OurAirports, loaded live)
 let RWY_CSV=null;
 function csvRow(line){const o=[];let i=0,f='',q=false;for(;i<line.length;i++){const ch=line[i];
@@ -452,7 +459,8 @@ function acUI(){const a=PROF[st.ac];$('wt').min=Math.round(a.max_weight_lb*.7);$
   $('acnote').textContent=(a._sources?'Numbers read from the POH (see page references in the profile JSON). ':'Numbers entered by you. ')+(a.caps?`CAPS pulled ${a.caps.decision_time_after_recognition_s} s after you react; your minimum is ${a.caps.min_agl_level_ft} ft AGL.`:'No airframe parachute.');
   $('hudsub').textContent=`${a.name} · ${AP?AP.icao:''} · drag to orbit, scroll to zoom`;
   $('assump').textContent=`${a.name}, ${fmt(st.wt)} lb, ISA+10 °C, flaps 50 %, ${st.rx} s to react${st.sv?` plus ${(4*st.sv).toFixed(0)} s startle delay and a ${(8*st.sv).toFixed(0)} kt speed error`:''}, then 2 s before banking, ${st.bk}° bank, ${a.glide.glide_ratio_ref}:1 glide at ${a.glide.vbg_kias_ref} KIAS.`;}
-function fillAcSelect(){$('ac').innerHTML=Object.keys(PROF).map(i=>`<option value="${i}">${PROF[i].name}${CFG.aircraft[i]?'':' (saved)'}</option>`).join('');$('ac').value=st.ac;}
+function fillAcSelect(){$('ac').innerHTML=Object.keys(PROF).map(i=>`<option value="${i}">${PROF[i].name}${CFG.aircraft[i]?'':' (saved)'}</option>`).join('')+
+    `<optgroup label="Starter profiles: POH values filled in, you add the rest">${Object.keys(CFG.partials||{}).map(i=>`<option value="partial:${i}">${CFG.partials[i].name}</option>`).join('')}</optgroup>`;$('ac').value=st.ac;}
 function setAirport(ap){AP=ap;CACHE={};anim=null;fillRunways();loadImagery();acUI();refresh(true);setView(st.view);}
 async function goAirport(){const id=$('icao').value.trim().toUpperCase();if(!id)return;const info=$('apinfo');info.textContent='Loading '+id+'…';
   try{const ap=await getAirport(id);if(!ap||!ap.runways||!Object.keys(ap.runways).length){info.textContent=`No runways with coordinates found for "${id}". Use the ICAO or FAA identifier.`;return;}setAirport(ap);}
@@ -465,7 +473,7 @@ function init(){
   loadSaved();fillAcSelect();fillForm(PROF[st.ac]);st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;
   $('hw').value=st.hw;$('xw').value=st.xw;
   $('icaogo').onclick=goAirport;$('icao').onkeydown=e=>{if(e.key==='Enter')goAirport();};
-  $('ac').onchange=e=>{st.ac=e.target.value;st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;fillForm(PROF[st.ac]);anim=null;acUI();refresh(true);};
+  $('ac').onchange=e=>{if(e.target.value.startsWith('partial:')){const p=CFG.partials[e.target.value.slice(8)];fillForm(p);$('poh').open=true;$('f_msg').textContent='Starter profile loaded from the POH. Still needed: '+p._missing.join('; ')+'.';$('ac').value=st.ac;$('poh').scrollIntoView({block:'nearest'});return;}st.ac=e.target.value;st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;fillForm(PROF[st.ac]);anim=null;acUI();refresh(true);};
   [['wt','wt'],['rx','rx'],['bk','bk'],['sv','sv'],['hw','hw'],['xw','xw']].forEach(([id,k])=>{$(id).oninput=e=>{st[k]=+e.target.value;anim=null;acUI();refresh(true);};});
   $('fence').oninput=e=>{st.fence=+e.target.value;acUI();build();if(st.view==='fence')setView('fence');};
   $('rwy').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.rwy=b.dataset.r;anim=null;

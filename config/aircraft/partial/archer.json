@@ -1,0 +1,55 @@
+{
+ "id": "archer",
+ "name": "Piper PA-28-181 Archer II",
+ "max_weight_lb": 2550,
+ "ref_weight_lb": 2550,
+ "wing_area_ft2": null,
+ "takeoff": {
+  "vr_kias": 53,
+  "vy_kias": 76,
+  "roc_ref_fpm": null,
+  "ground_roll_ref_ft": null,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 1.0
+ },
+ "glide": {
+  "vbg_kias_ref": 76,
+  "glide_ratio_ref": 9.8
+ },
+ "stall_kias_ref": {
+  "0": 55,
+  "50": 55,
+  "100": 49
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": null,
+  "touchdown_kias": 66,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {
+  "vr": "Sec 5.2 Flaps-up takeoff chart: lift-off speed 53 KIAS at 2550 lb",
+  "vy": "Sec 4.2: best rate of climb 76 KIAS",
+  "glide": "Sec 5.11 Glide Range chart: power off, flaps up, 76 KIAS, 2550 lb; example 13 NM at 8,000 ft minus 2.5 NM at 1,500 ft = 10.5 NM for 6,500 ft -> L/D about 9.8",
+  "stall": "Sec 4.19: gross-weight stall power off, full flaps 49 KIAS; flaps up is 6 kt higher = 55 KIAS (normal takeoff is flaps up, so 55 is used for the takeoff-flap entry too)",
+  "landing": "Sec 4.2: final approach speed (flaps 40) 66 KIAS"
+ },
+ "_missing": [
+  "Climb rate at 76 KIAS (the POH only gives a time-to-climb chart)",
+  "Takeoff ground roll (the POH charts give distance over a 50 ft barrier only; you can enter that instead)",
+  "Landing ground roll (POH gives distance over a 50 ft barrier only; you can enter that instead)"
+ ]
+}

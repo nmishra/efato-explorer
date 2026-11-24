@@ -17,7 +17,9 @@ for k, v in apt["runways"].items():
              "par": v["parallel"], "par_y": v["parallel_side"] * apt["parallel_spacing_ft"]}
 fallback = {"icao": "KSJC", "elevation_ft": apt["elevation_ft"], "arp": apt["arp"],
             "infield_halfwidth_ft": apt["infield_halfwidth_ft"], "runways": rw}
-data = {"order": BUILTIN, "aircraft": {i: json.load(open(os.path.join(cfg, "aircraft", i + ".json"))) for i in BUILTIN},
+import glob
+partials = {os.path.basename(f)[:-5]: json.load(open(f)) for f in sorted(glob.glob(os.path.join(cfg, "aircraft", "partial", "*.json")))}
+data = {"partials": partials, "order": BUILTIN, "aircraft": {i: json.load(open(os.path.join(cfg, "aircraft", i + ".json"))) for i in BUILTIN},
         "airport_fallback": fallback}
 rd = lambda *p: open(os.path.join(here, *p)).read()
 page = rd("viewer", "viewer_template.html")
