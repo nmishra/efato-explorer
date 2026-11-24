@@ -154,6 +154,14 @@ textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
       <div class="rng"><label for="rx">Reaction <b id="rxv"></b></label><input type="range" id="rx" min="1" max="10" step="0.5"></div>
       <div class="rng"><label for="bk">Bank <b id="bkv"></b></label><input type="range" id="bk" min="25" max="60" step="5"></div>
       <div class="rng"><label for="sv">Startle <b id="svv"></b></label><input type="range" id="sv" min="0" max="1" step="0.25"></div>
+      <details style="margin-top:8px"><summary>Landing roll assumptions</summary>
+        <p class="fine">The POH ground roll is multiplied by the margin and the surface factor, then the float distance is added. Straight-ahead needs touchdown plus this roll to fit in the pavement (plus any overrun you credit); a turn-back needs it behind the touchdown point.</p>
+        <div class="rng"><label for="mg">Roll margin <b id="mgv"></b></label><input type="range" id="mg" min="1" max="2" step="0.05"></div>
+        <div class="rng"><label for="sf">Surface factor <b id="sfv"></b></label><input type="range" id="sf" min="1" max="2" step="0.05"></div>
+        <p class="fine" style="margin:0">1.00 is dry paved, as in POH tables. Use your POH's wet or grass correction (for example +20 % dry grass is 1.20).</p>
+        <div class="rng"><label for="fl">Float / flare <b id="flv"></b></label><input type="range" id="fl" min="0" max="1500" step="50"></div>
+        <div class="rng"><label for="ov">Usable overrun <b id="ovv"></b></label><input type="range" id="ov" min="0" max="1000" step="100"></div>
+      </details>
     </section>
 
     <section class="sec"><h2>Engine fails at</h2>
@@ -1249,7 +1257,7 @@ const fmt=n=>Math.round(n).toLocaleString('en-US');
 const S=0.01, NM=6076.12, FTDEG=364567;     // 1 scene unit = 100 ft
 let vex=3;
 const HEIGHTS=[];for(let h=50;h<=1800;h+=50)HEIGHTS.push(h);
-const st={ac:'sr22t',wt:3400,rx:4,bk:45,sv:0,hw:0,xw:0,rwy:null,remF:1,hi:15,fence:3,show:{straight:true,ret:true,par:false,caps:true},view:'iso',chase:false};
+const st={ac:'sr22t',wt:3400,rx:4,bk:45,sv:0,hw:0,xw:0,mg:1.25,sf:1,fl:0,ov:0,rwy:null,remF:1,hi:15,fence:3,show:{straight:true,ret:true,par:false,caps:true},view:'iso',chase:false};
 let AP=null,renderer,scene,camera,controls,dyn,plane,anim=null,theme={};
 // JavaScript port of efato/sim.py + efato/viz_export.py (keep the two in sync).
 // Frame: x along takeoff direction from brake release (ft), y to the right (ft), h AGL (ft).
@@ -1274,8 +1282,9 @@ class Ctx{
     this.max_align=p.max_align_err_deg*Math.PI/180;this.ld_eff=ld;
     const ln=ac.landing,vtd=ln.touchdown_kias,wt=this.W/Wref,base=ln.roll_ref_ft*wt/this.sig,vt=vtd/this.sqs;
     this.vtd_tas=vt;
-    this.roll_straight=base*Math.pow(Math.max(.5,(vt-sc.headwind_kt)/vt),2)*ln.roll_margin_factor;
-    this.roll_return=base*Math.pow(Math.max(.5,(vt+sc.headwind_kt)/vt),2)*ln.roll_margin_factor;
+    const margin=sc.landing_margin||ln.roll_margin_factor,sm=sc.surface_mult||1,flt=sc.float_ft||0;
+    this.roll_straight=base*Math.pow(Math.max(.5,(vt-sc.headwind_kt)/vt),2)*margin*sm+flt;
+    this.roll_return=base*Math.pow(Math.max(.5,(vt+sc.headwind_kt)/vt),2)*margin*sm+flt;
   }
 }
 
@@ -1350,7 +1359,7 @@ function evaluate(c,hFail,opts){
   if(hit){s={kind:'ground',x:st1[0],y:st1[1]};base=traj1;}
   else{s=fly(c,st1,{tOff:c.react,record:true});base=traj1.concat(s.traj.slice(1));}
   const xtd=s.x;
-  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
+  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft+(sc.overrun_ft||0)&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
   if(rec){const pts=decimate(base,1.5,c.sqs),e=pts[pts.length-1];
     pts.push([Math.round((e[0]+2*c.roll_straight/c.vtd_tas)*10)/10,e[1]+Math.round(c.roll_straight),e[2],0,0]);res.straight.pts=pts;}
   // CAPS
@@ -1370,7 +1379,7 @@ function evaluate(c,hFail,opts){
   }
   // return
   const best={dep:null,par:null};res.ret_any=false;
-  const xMin=c.roll_return-c.d0,xHi=Math.min(xf,sc.remaining_ft);
+  const xMin=c.roll_return-c.d0-(sc.overrun_ft||0),xHi=Math.min(xf,sc.remaining_ft);
   if(!hit&&xHi>xMin){
     const cands=[];for(let i=0;i<6;i++)cands.push(xMin+(xHi-xMin)*i/5);
     let done=false;
@@ -1494,9 +1503,9 @@ const useSat=()=>imgReady&&$('sat').checked;
 const inkC=()=>useSat()?'#ffffff':theme.ink;
 // ---------------------------------------------------------------- scenario
 let ACP=null,CTX=null,CACHE={};
-const ctxKey=()=>[st.ac,AP.icao,st.rwy,st.remF,st.hw,st.xw,st.wt,st.rx,st.bk,st.sv,JSON.stringify(PROF[st.ac]).length].join('|');
+const ctxKey=()=>[st.ac,AP.icao,st.rwy,st.remF,st.hw,st.xw,st.wt,st.rx,st.bk,st.sv,st.mg,st.sf,st.fl,st.ov,JSON.stringify(PROF[st.ac]).length].join('|');
 function ctxFor(){const k=ctxKey();if(CACHE.k!==k){CACHE={k};ACP=PROF[st.ac];
-  CTX=new Ctx(ACP,AP,{runway:st.rwy,remaining_ft:curRem(),headwind_kt:st.hw,crosswind_kt:st.xw,weight_lb:st.wt,isa_dev_c:10,reaction_s:st.rx,bank_after_s:2,bank_deg:st.bk,flaps_pct:50,startle:st.sv});}
+  CTX=new Ctx(ACP,AP,{runway:st.rwy,remaining_ft:curRem(),headwind_kt:st.hw,crosswind_kt:st.xw,weight_lb:st.wt,isa_dev_c:10,reaction_s:st.rx,bank_after_s:2,bank_deg:st.bk,flaps_pct:50,startle:st.sv,landing_margin:st.mg,surface_mult:st.sf,float_ft:st.fl,overrun_ft:st.ov});}
   return CTX;}
 function rowData(){ctxFor();if(!CACHE.row)CACHE.row=HEIGHTS.map(h=>{const r=evaluate(CTX,h,{fast:true});return {h,xf:Math.round(r.xf),code:r.code};});return CACHE.row;}
 function cur(){ctxFor();const h=HEIGHTS[st.hi];if(!CACHE.cur||CACHE.cur.h!==h){CACHE.cur=evaluate(CTX,h,{paths:true});}return CACHE.cur;}
@@ -1657,6 +1666,7 @@ function fillRem(){const L=AP.runways[st.rwy].length_ft;$('rem').innerHTML=[1,.7
 function acUI(){const a=PROF[st.ac];$('wt').min=Math.round(a.max_weight_lb*.7);$('wt').max=a.max_weight_lb;$('wt').step=10;st.wt=Math.min(Math.max(st.wt,+$('wt').min),a.max_weight_lb);$('wt').value=st.wt;
   $('wtv').textContent=fmt(st.wt)+' lb';$('rxv').textContent=st.rx+' s';$('bkv').textContent=st.bk+'°';$('rx').value=st.rx;$('bk').value=st.bk;$('sv').value=st.sv;
   $('svv').textContent=['none','mild','moderate','strong','severe'][st.sv*4]+(st.sv?` (+${(4*st.sv).toFixed(0)} s, +${(8*st.sv).toFixed(0)} kt)`:'');
+  $('mgv').textContent=st.mg.toFixed(2)+'×';$('sfv').textContent=st.sf.toFixed(2)+'×';$('flv').textContent=st.fl+' ft';$('ovv').textContent=st.ov+' ft';
   $('hwv').textContent=st.hw>=0?`${st.hw} kt head`:`${-st.hw} kt tail`;$('xwv').textContent=st.xw===0?'none':(st.xw>0?`${st.xw} kt from right`:`${-st.xw} kt from left`);$('fencev').textContent=st.fence+' NM';
   $('acnote').textContent=(a._sources?'Numbers read from the POH (see page references in the profile JSON). ':'Numbers entered by you. ')+(a.caps?`CAPS pulled ${a.caps.decision_time_after_recognition_s} s after you react; your minimum is ${a.caps.min_agl_level_ft} ft AGL.`:'No airframe parachute.');
   $('hudsub').textContent=`${a.name} · ${AP?AP.icao:''} · drag to orbit, scroll to zoom`;
@@ -1673,10 +1683,10 @@ function init(){
   scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,1,.1,6000);
   controls=new THREE.OrbitControls(camera,cv);controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.495;controls.maxDistance=900;
   loadSaved();fillAcSelect();fillForm(PROF[st.ac]);st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;
-  $('hw').value=st.hw;$('xw').value=st.xw;
+  $('hw').value=st.hw;$('xw').value=st.xw;$('mg').value=st.mg;$('sf').value=st.sf;$('fl').value=st.fl;$('ov').value=st.ov;
   $('icaogo').onclick=goAirport;$('icao').onkeydown=e=>{if(e.key==='Enter')goAirport();};
   $('ac').onchange=e=>{if(e.target.value.startsWith('partial:')){const p=CFG.partials[e.target.value.slice(8)];fillForm(p);$('poh').open=true;$('f_msg').textContent='Starter profile loaded from the POH. Still needed: '+p._missing.join('; ')+'.';$('ac').value=st.ac;$('poh').scrollIntoView({block:'nearest'});return;}st.ac=e.target.value;st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;fillForm(PROF[st.ac]);anim=null;acUI();refresh(true);};
-  [['wt','wt'],['rx','rx'],['bk','bk'],['sv','sv'],['hw','hw'],['xw','xw']].forEach(([id,k])=>{$(id).oninput=e=>{st[k]=+e.target.value;anim=null;acUI();refresh(true);};});
+  [['wt','wt'],['rx','rx'],['bk','bk'],['sv','sv'],['hw','hw'],['xw','xw'],['mg','mg'],['sf','sf'],['fl','fl'],['ov','ov']].forEach(([id,k])=>{$(id).oninput=e=>{st[k]=+e.target.value;anim=null;acUI();refresh(true);};});
   $('fence').oninput=e=>{st.fence=+e.target.value;acUI();build();if(st.view==='fence')setView('fence');};
   $('rwy').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.rwy=b.dataset.r;anim=null;
     document.querySelectorAll('#rwy button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fillRem();CACHE={};loadImagery();refresh(true);setView(st.view);};

@@ -21,8 +21,9 @@ class Ctx{
     this.max_align=p.max_align_err_deg*Math.PI/180;this.ld_eff=ld;
     const ln=ac.landing,vtd=ln.touchdown_kias,wt=this.W/Wref,base=ln.roll_ref_ft*wt/this.sig,vt=vtd/this.sqs;
     this.vtd_tas=vt;
-    this.roll_straight=base*Math.pow(Math.max(.5,(vt-sc.headwind_kt)/vt),2)*ln.roll_margin_factor;
-    this.roll_return=base*Math.pow(Math.max(.5,(vt+sc.headwind_kt)/vt),2)*ln.roll_margin_factor;
+    const margin=sc.landing_margin||ln.roll_margin_factor,sm=sc.surface_mult||1,flt=sc.float_ft||0;
+    this.roll_straight=base*Math.pow(Math.max(.5,(vt-sc.headwind_kt)/vt),2)*margin*sm+flt;
+    this.roll_return=base*Math.pow(Math.max(.5,(vt+sc.headwind_kt)/vt),2)*margin*sm+flt;
   }
 }
 
@@ -97,7 +98,7 @@ function evaluate(c,hFail,opts){
   if(hit){s={kind:'ground',x:st1[0],y:st1[1]};base=traj1;}
   else{s=fly(c,st1,{tOff:c.react,record:true});base=traj1.concat(s.traj.slice(1));}
   const xtd=s.x;
-  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
+  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft+(sc.overrun_ft||0)&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
   if(rec){const pts=decimate(base,1.5,c.sqs),e=pts[pts.length-1];
     pts.push([Math.round((e[0]+2*c.roll_straight/c.vtd_tas)*10)/10,e[1]+Math.round(c.roll_straight),e[2],0,0]);res.straight.pts=pts;}
   // CAPS
@@ -117,7 +118,7 @@ function evaluate(c,hFail,opts){
   }
   // return
   const best={dep:null,par:null};res.ret_any=false;
-  const xMin=c.roll_return-c.d0,xHi=Math.min(xf,sc.remaining_ft);
+  const xMin=c.roll_return-c.d0-(sc.overrun_ft||0),xHi=Math.min(xf,sc.remaining_ft);
   if(!hit&&xHi>xMin){
     const cands=[];for(let i=0;i<6;i++)cands.push(xMin+(xHi-xMin)*i/5);
     let done=false;

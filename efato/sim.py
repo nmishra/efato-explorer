@@ -55,6 +55,10 @@ class Scenario:
     bank_after_s: float = 2.0       # additional seconds after reaction before banking (pushover/decision)
     bank_deg: float = 45.0
     flaps_pct: int = 50
+    landing_margin: float = 0.0      # 0 = use the aircraft profile's roll_margin_factor
+    surface_mult: float = 1.0        # landing-roll multiplier for the surface (1.0 = dry paved, as in the POH tables)
+    float_ft: float = 0.0            # extra flare/float distance added to the landing roll
+    overrun_ft: float = 0.0          # usable stopway/overrun beyond each runway end
     startle: float = 0.0            # 0..1: adds delay (up to +4 s) and a speed-control error (up to +8 kt above best glide)
 
 
@@ -112,8 +116,9 @@ class Ctx:
         vtd = ln["touchdown_kias"]
         wt = (self.W / Wref)
         base = ln["roll_ref_ft"] * wt / self.sig
-        self.roll_straight = base * max(0.5, ((vtd / self.sqs - sc.headwind_kt) / (vtd / self.sqs))) ** 2 * ln["roll_margin_factor"]
-        self.roll_return = base * max(0.5, ((vtd / self.sqs + sc.headwind_kt) / (vtd / self.sqs))) ** 2 * ln["roll_margin_factor"]
+        margin = sc.landing_margin or ln["roll_margin_factor"]
+        self.roll_straight = base * max(0.5, ((vtd / self.sqs - sc.headwind_kt) / (vtd / self.sqs))) ** 2 * margin * sc.surface_mult + sc.float_ft
+        self.roll_return = base * max(0.5, ((vtd / self.sqs + sc.headwind_kt) / (vtd / self.sqs))) ** 2 * margin * sc.surface_mult + sc.float_ft
 
     def drag(self, V, n_cl):
         """Drag (lb) at TAS V (ft/s) when lift coefficient is n_cl."""
@@ -274,7 +279,7 @@ def evaluate(c: Ctx, h_fail, fast=False, n_aim=6):
         traj = traj1 + s["traj"][1:]
     x_td = s.get("x", float("nan"))
     res["straight_td_x"] = x_td
-    res["straight_ok"] = bool(s["kind"] == "ground" and x_td + c.roll_straight <= sc.remaining_ft
+    res["straight_ok"] = bool(s["kind"] == "ground" and x_td + c.roll_straight <= sc.remaining_ft + sc.overrun_ft
                               and x_td >= -c.d0)
     res["straight_runway_left_ft"] = sc.remaining_ft - (x_td + c.roll_straight)
 
@@ -303,7 +308,7 @@ def evaluate(c: Ctx, h_fail, fast=False, n_aim=6):
 
     # ---- RETURN (turn back) ---------------------------------------------------------
     best_dep, best_any = -1e9, -1e9
-    x_min = c.roll_return - c.d0
+    x_min = c.roll_return - c.d0 - sc.overrun_ft
     x_hi = min(x_f, sc.remaining_ft)
     res.update(return_dep_ok=False, return_any_ok=False, return_dep_margin=float("nan"),
                return_any_margin=float("nan"), return_dep_dir=0, return_roll_ft=c.roll_return)
