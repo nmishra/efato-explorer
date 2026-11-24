@@ -23,6 +23,7 @@ body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0
 #hud{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:14px;pointer-events:none}
 #hud h1{font:700 20px/1.1 var(--f-head);margin:0;letter-spacing:.01em}
 #hud p{margin:4px 0 0;color:var(--muted);font-size:12px}
+#prof{position:absolute;right:12px;top:12px;width:310px;height:150px;background:color-mix(in srgb,var(--panel) 85%,transparent);border:1px solid var(--line);border-radius:8px}
 #readout{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:14px;font:500 12px var(--f-mono);color:var(--ink);background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
 #legend{position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
 #legend i{display:inline-block;width:18px;height:0;border-top:3px solid;margin-right:8px;vertical-align:middle}
@@ -65,6 +66,7 @@ label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
 .codes{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--muted);margin-top:8px}
 .codes span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:5px}
 @media (max-width:820px){
+  #prof{width:200px;height:100px}
   body{height:auto}
   #app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}
   #panel{border-left:0;border-top:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -83,6 +85,7 @@ textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
   <div id="stage">
     <canvas id="gl" aria-label="3D view of the airport environment, climb-out and engine-failure options"></canvas>
     <div id="hud"><h1>Engine-out explorer</h1><p id="hudsub"></p></div>
+    <canvas id="prof" width="620" height="300" aria-label="Airspeed and altitude against time for the selected path"></canvas>
     <div id="readout">t 0.0 s · AGL 0 ft</div>
     <div id="legend">
       <span><i style="border-color:var(--ink)"></i>Climb-out</span>
@@ -381,7 +384,30 @@ function placePlane(t){
   const pts=anim?anim.pts:pathFor(null),tt=anim?t:cur().tc,s=sample(pts,tt),a=pts[s.i],b=pts[s.i+1];
   const pa=P(a[1],a[2],a[3]),pb=P(b[1],b[2],b[3]),pos=pa.clone().lerp(pb,s.f);plane.position.copy(pos);
   const dir=pb.clone().sub(pa);if(dir.lengthSq()>1e-8){dir.normalize();plane.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);}
-  const hh=a[3]+(b[3]-a[3])*s.f;$('readout').textContent=`t ${tt.toFixed(1)} s · AGL ${fmt(Math.max(0,hh))} ft · x ${fmt(a[1]+(b[1]-a[1])*s.f)} ft`;return pos;}
+  const hh=a[3]+(b[3]-a[3])*s.f,ias=a[4]+(b[4]-a[4])*s.f,vs=(b[3]-a[3])/Math.max(b[0]-a[0],1e-6)*60,msl=hh+AP.elevation_ft;
+  $('readout').innerHTML=`IAS <b>${ias>1?fmt(ias):'—'}</b> kt · AGL <b>${fmt(Math.max(0,hh))}</b> ft · MSL ${fmt(msl)} ft · VS <b>${vs>=0?'+':'−'}${fmt(Math.abs(vs))}</b> fpm · t ${tt.toFixed(1)} s`;
+  drawProfile(anim?anim.mode:'straight',tt);return pos;}
+function drawProfile(mode,t){
+  const cv=$('prof'),g=cv.getContext('2d'),W=cv.width,H=cv.height,c=cur(),m=(mode==='climb'||!mode)?'straight':mode;let pts=pathFor(m);
+  const tmax=pts[pts.length-1][0];let hmax=100,vmax=60;pts.forEach(p=>{hmax=Math.max(hmax,p[3]);vmax=Math.max(vmax,p[4]);});
+  hmax=Math.ceil(hmax/200)*200;vmax=Math.ceil((vmax+5)/20)*20;
+  const L=64,R=54,T=26,B=34,X=tt=>L+(W-L-R)*tt/tmax,YH=h=>H-B-(H-T-B)*h/hmax,YV=v=>H-B-(H-T-B)*v/vmax;
+  g.clearRect(0,0,W,H);g.font='500 20px Inter, system-ui, sans-serif';g.textBaseline='middle';
+  g.strokeStyle=theme.line;g.lineWidth=1;g.fillStyle=theme.muted;
+  for(let i=0;i<=4;i++){const y=T+(H-T-B)*i/4;g.beginPath();g.moveTo(L,y);g.lineTo(W-R,y);g.stroke();}
+  g.textAlign='right';for(let i=0;i<=4;i++){g.fillText(fmt(hmax*(1-i/4)),L-8,T+(H-T-B)*i/4);}
+  g.textAlign='left';for(let i=0;i<=4;i++){g.fillText(fmt(vmax*(1-i/4)),W-R+8,T+(H-T-B)*i/4);}
+  g.textAlign='center';[0,.5,1].forEach(f=>g.fillText(Math.round(tmax*f)+' s',L+(W-L-R)*f,H-B+18));
+  // reference speeds
+  const ref=(v,txt,col)=>{if(v<=0||v>vmax)return;g.setLineDash([6,5]);g.strokeStyle=col;g.beginPath();g.moveTo(L,YV(v));g.lineTo(W-R,YV(v));g.stroke();g.setLineDash([]);g.fillStyle=col;g.textAlign='left';g.fillText(txt,L+6,YV(v)-9);};
+  ref(ACP.glide.vbg_kias_ref,'best glide '+ACP.glide.vbg_kias_ref,theme.ok);ref(ACP.stall_kias_ref['50'],'stall '+ACP.stall_kias_ref['50'],theme.bad);
+  // engine-out marker
+  g.strokeStyle=theme.bad;g.lineWidth=2;g.beginPath();g.moveTo(X(c.tc),T);g.lineTo(X(c.tc),H-B);g.stroke();
+  const line=(idx,Y,col)=>{g.strokeStyle=col;g.lineWidth=3;g.beginPath();pts.forEach((p,i)=>{const x=X(p[0]),y=Y(p[idx]);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();};
+  line(3,YH,theme.accent);line(4,YV,theme.ret);
+  g.strokeStyle=theme.ink;g.lineWidth=2;const cx=X(Math.min(t,tmax));g.beginPath();g.moveTo(cx,T);g.lineTo(cx,H-B);g.stroke();
+  g.font='600 20px Inter, system-ui, sans-serif';g.textAlign='left';g.fillStyle=theme.accent;g.fillText('AGL ft',L,12);g.fillStyle=theme.ret;g.textAlign='right';g.fillText('IAS kt',W-6,12);
+  g.fillStyle=theme.muted;g.textAlign='center';g.fillText({straight:'straight ahead',ret:'turn-back',par:'turn to parallel',caps:'CAPS'}[m],W/2,12);}
 function play(mode){const pts=pathFor(mode);if(pts.length<2)return;anim={mode,pts,t:0,T:pts[pts.length-1][0],on:true};if(mode==='climb')anim.T=cur().tc;}
 function setView(v){st.view=v;const d=d0(),rem=curRem(),cx=(-d+rem)/2*S,L=(d+rem)*S,[xa,ya]=localOf(AP.arp.lat,AP.arp.lon),F=st.fence*NM*S;
   const T={iso:[cx,2,0],top:[cx,2,0],side:[cx,2,0],fence:[xa*S,0,ya*S]}[v]||[cx,2,0];controls.target.set(T[0],T[1],T[2]);

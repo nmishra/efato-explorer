@@ -82,7 +82,8 @@ function fly(c,st,o){
   out.t=t;out.traj=traj;return out;
 }
 
-function decimate(rows,step){const out=[];let last=-1e9;rows.forEach((r,i)=>{if(r[0]-last>=step||i===rows.length-1){out.push([Math.round(r[0]*10)/10,Math.round(r[1]),Math.round(r[2]),Math.max(0,Math.round(r[3]))]);last=r[0];}});return out;}
+// points are [t s, x ft, y ft, AGL ft, IAS kt]
+function decimate(rows,step,sqs){const out=[];let last=-1e9;rows.forEach((r,i)=>{if(r[0]-last>=step||i===rows.length-1){out.push([Math.round(r[0]*10)/10,Math.round(r[1]),Math.round(r[2]),Math.max(0,Math.round(r[3])),Math.round(r[4]*sqs/KT)]);last=r[0];}});return out;}
 
 // Full evaluation. opts.paths -> include decimated trajectories; opts.fast -> stop turn-back search at first success.
 function evaluate(c,hFail,opts){
@@ -97,8 +98,8 @@ function evaluate(c,hFail,opts){
   else{s=fly(c,st1,{tOff:c.react,record:true});base=traj1.concat(s.traj.slice(1));}
   const xtd=s.x;
   res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
-  if(rec){const pts=decimate(base,1.5),e=pts[pts.length-1];
-    pts.push([Math.round((e[0]+2*c.roll_straight/c.vtd_tas)*10)/10,e[1]+Math.round(c.roll_straight),e[2],0]);res.straight.pts=pts;}
+  if(rec){const pts=decimate(base,1.5,c.sqs),e=pts[pts.length-1];
+    pts.push([Math.round((e[0]+2*c.roll_straight/c.vtd_tas)*10)/10,e[1]+Math.round(c.roll_straight),e[2],0,0]);res.straight.pts=pts;}
   // CAPS
   const cp=ac.caps;res.caps={ok:false,hd:0,pts:[],land:null,onap:false,drift:0,available:!!cp};
   if(cp){
@@ -109,9 +110,9 @@ function evaluate(c,hFail,opts){
       const xl=xd+cp.forward_travel_ft*Math.cos(T.psi0)+c.wx*tCan,yl=yd+cp.forward_travel_ft*Math.sin(T.psi0)+c.wy*tCan;
       const onap=xl>=-c.d0&&xl<=sc.remaining_ft&&Math.abs(yl)<=c.apt.infield_halfwidth_ft;
       Object.assign(res.caps,{ok,hd:Math.round(hd),land:[Math.round(xl),Math.round(yl)],onap,drift:Math.round(c.wx*tCan)});
-      if(rec&&hd>5){const ti=cp.inflation_time_s,pre=decimate(base.filter(r=>r[0]<=tDep+1e-9),1.5);
-        res.caps.pts=pre.concat([[Math.round((tDep+ti)*10)/10,Math.round(xd+cp.forward_travel_ft*Math.cos(T.psi0)+c.wx*ti),Math.round(yd+cp.forward_travel_ft*Math.sin(T.psi0)+c.wy*ti),Math.max(0,Math.round(hd-cp.altitude_loss_to_inflate_ft))],
-          [Math.round((tDep+tCan)*10)/10,Math.round(xl),Math.round(yl),0]]);}
+      if(rec&&hd>5){const ti=cp.inflation_time_s,pre=decimate(base.filter(r=>r[0]<=tDep+1e-9),1.5,c.sqs);
+        res.caps.pts=pre.concat([[Math.round((tDep+ti)*10)/10,Math.round(xd+cp.forward_travel_ft*Math.cos(T.psi0)+c.wx*ti),Math.round(yd+cp.forward_travel_ft*Math.sin(T.psi0)+c.wy*ti),Math.max(0,Math.round(hd-cp.altitude_loss_to_inflate_ft)),0],
+          [Math.round((tDep+tCan)*10)/10,Math.round(xl),Math.round(yl),0,0]]);}
     }
   }
   // return
@@ -136,14 +137,14 @@ function evaluate(c,hFail,opts){
   for(const k of ['dep','par']){const b=best[k];
     if(!b){res['ret_'+k]=null;continue;}
     const o={ok:b.ok,margin:b.m>-1e5?Math.round(b.m):null,aim:[Math.round(b.ax),Math.round(b.ay)],need:Math.round(c.roll_return)};
-    if(rec){const pts=decimate(traj1.concat(b.q.traj.slice(1)),1.5);
-      if(b.ok){const e=pts[pts.length-1];pts.push([Math.round((e[0]+2*c.roll_return/c.vtd_tas)*10)/10,Math.round(e[1]-c.roll_return),e[2],0]);}o.pts=pts;}
+    if(rec){const pts=decimate(traj1.concat(b.q.traj.slice(1)),1.5,c.sqs);
+      if(b.ok){const e=pts[pts.length-1];pts.push([Math.round((e[0]+2*c.roll_return/c.vtd_tas)*10)/10,Math.round(e[1]-c.roll_return),e[2],0,0]);}o.pts=pts;}
     res['ret_'+k]=o;}
   res.code=(res.straight.ok?1:0)+(res.ret_dep&&res.ret_dep.ok?2:0)+(res.caps.ok?4:0);
   if(rec){ // climb path for display
     const tRoll=2*T.roll/T.vr,tClb=hFail/T.roc,climb=[];
-    for(const f of [0,.35,.7,1])climb.push([Math.round(tRoll*f*10)/10,Math.round(T.roll*f*f),0,0]);
-    for(let i=1;i<=10;i++){const f=i/10;climb.push([Math.round((tRoll+tClb*f)*10)/10,Math.round(T.roll+(xf-T.roll)*f),0,Math.round(hFail*f)]);}
+    for(const f of [0,.35,.7,1])climb.push([Math.round(tRoll*f*10)/10,Math.round(T.roll*f*f),0,0,Math.round(f*ac.takeoff.vr_kias)]);
+    for(let i=1;i<=10;i++){const f=i/10;climb.push([Math.round((tRoll+tClb*f)*10)/10,Math.round(T.roll+(xf-T.roll)*f),0,Math.round(hFail*f),Math.round(ac.takeoff.vy_kias)]);}
     res.climb=climb;res.tc=climb[climb.length-1][0];}
   return res;
 }
