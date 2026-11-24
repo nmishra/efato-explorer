@@ -281,7 +281,7 @@ def evaluate(c: Ctx, h_fail, fast=False, n_aim=6):
     res["straight_td_x"] = x_td
     res["straight_ok"] = bool(s["kind"] == "ground" and x_td + c.roll_straight <= sc.remaining_ft + sc.overrun_ft
                               and x_td >= -c.d0)
-    res["straight_runway_left_ft"] = sc.remaining_ft - (x_td + c.roll_straight)
+    res["straight_runway_left_ft"] = sc.remaining_ft + sc.overrun_ft - (x_td + c.roll_straight)
 
     # ---- CAPS -----------------------------------------------------------------------
     cp = c.ac["caps"]

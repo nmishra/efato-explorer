@@ -98,7 +98,7 @@ function evaluate(c,hFail,opts){
   if(hit){s={kind:'ground',x:st1[0],y:st1[1]};base=traj1;}
   else{s=fly(c,st1,{tOff:c.react,record:true});base=traj1.concat(s.traj.slice(1));}
   const xtd=s.x;
-  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft+(sc.overrun_ft||0)&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft-(xtd+c.roll_straight))};
+  res.straight={ok:s.kind==='ground'&&xtd+c.roll_straight<=sc.remaining_ft+(sc.overrun_ft||0)&&xtd>=-c.d0,td:Math.round(xtd),roll:Math.round(c.roll_straight),left:Math.round(sc.remaining_ft+(sc.overrun_ft||0)-(xtd+c.roll_straight))};
   if(rec){const pts=decimate(base,1.5,c.sqs),e=pts[pts.length-1];
     pts.push([Math.round((e[0]+2*c.roll_straight/c.vtd_tas)*10)/10,e[1]+Math.round(c.roll_straight),e[2],0,0]);res.straight.pts=pts;}
   // CAPS
