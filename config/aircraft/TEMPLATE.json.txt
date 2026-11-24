@@ -1,0 +1,46 @@
+{
+ "_note": "TEMPLATE: copy to config/aircraft/<id>.json and fill every null from YOUR POH (or export a profile from the web page, same schema). Run with EFATO_AIRCRAFT=<id>.",
+ "id": "mine",
+ "name": "My aircraft",
+ "max_weight_lb": null,
+ "ref_weight_lb": null,
+ "wing_area_ft2": null,
+ "takeoff": {
+  "vr_kias": null,
+  "vy_kias": null,
+  "roc_ref_fpm": null,
+  "ground_roll_ref_ft": null,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 1.0
+ },
+ "glide": {
+  "vbg_kias_ref": null,
+  "glide_ratio_ref": null
+ },
+ "stall_kias_ref": {
+  "0": null,
+  "50": null,
+  "100": null
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": null,
+  "touchdown_kias": null,
+  "roll_margin_factor": null
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {},
+ "_model": "flap_cd0_delta, landing roll_margin_factor, CAPS inflation_time_s / forward_travel_ft / decision_time, and all 'pilot' entries are modelling assumptions."
+}

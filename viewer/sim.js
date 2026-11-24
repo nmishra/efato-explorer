@@ -15,7 +15,7 @@ class Ctx{
     this.vs_eas=Math.sqrt(2*this.W/(RHO0*this.S*this.CLmax));this.vbg_eas=vbg*Math.sqrt(this.W/Wref);
     this.wx=-sc.headwind_kt*KT;this.wy=-sc.crosswind_kt*KT;
     const rw=apt.runways[sc.runway];this.rwy_len=rw.length_ft;this.d0=this.rwy_len-sc.remaining_ft;
-    this.par_y=rw.parallel_side*apt.parallel_spacing_ft;
+    this.par_y=rw.par_y==null?null:rw.par_y;
     const p=ac.pilot;this.turn_margin=p.turn_speed_margin_vs;this.react=sc.reaction_s+4*(sc.startle||0);this.speed_bias=8*KT*(sc.startle||0);this.roll_rate=p.max_roll_rate_deg_s*Math.PI/180;
     this.tau_v=p.speed_time_const_s;this.tau_g=p.gamma_time_const_s;this.h_req=p.arrival_margin_req_ft;
     this.max_align=p.max_align_err_deg*Math.PI/180;this.ld_eff=ld;
@@ -120,7 +120,7 @@ function evaluate(c,hFail,opts){
   if(!hit&&xHi>xMin){
     const cands=[];for(let i=0;i<6;i++)cands.push(xMin+(xHi-xMin)*i/5);
     let done=false;
-    for(const [tgt,ay] of [['dep',0],['par',c.par_y]]){
+    for(const [tgt,ay] of (c.par_y==null?[['dep',0]]:[['dep',0],['par',c.par_y]])){
       const dirs=ay>=0?[1,-1]:[-1,1];
       for(const d of dirs){for(const ax of cands){
         const q=fly(c,st1,{tOff:c.react,aim:[ax,ay],turnDir:d,bankDeg:sc.bank_deg,bankAfter:sc.bank_after_s,record:rec});

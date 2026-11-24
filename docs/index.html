@@ -70,12 +70,19 @@ label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
   #panel{border-left:0;border-top:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
   #legend{display:none}
 }
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}
+.form label.chk{flex-direction:row;align-items:center;gap:6px;grid-column:1/3}
+.form input[type=text],.form input[type=number],#icao{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;font-size:13px;min-width:0}
+#icao{text-transform:uppercase;font-family:var(--f-mono)}
+details summary{cursor:pointer;font-weight:500;color:var(--accent)}
+textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;margin-top:6px;font-family:var(--f-mono)}
 </style>
 
 <div id="app">
   <div id="stage">
-    <canvas id="gl" aria-label="3D view of the climb-out and engine-failure options"></canvas>
-    <div id="hud"><h1>Engine-out explorer</h1><p id="hudsub">KSJC · drag to orbit, scroll to zoom</p></div>
+    <canvas id="gl" aria-label="3D view of the airport environment, climb-out and engine-failure options"></canvas>
+    <div id="hud"><h1>Engine-out explorer</h1><p id="hudsub"></p></div>
     <div id="readout">t 0.0 s · AGL 0 ft</div>
     <div id="legend">
       <span><i style="border-color:var(--ink)"></i>Climb-out</span>
@@ -83,26 +90,65 @@ label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
       <span><i style="border-color:var(--ret)"></i>Turn-back, departure runway</span>
       <span><i class="d" style="border-color:var(--ret)"></i>Turn-back, parallel runway</span>
       <span><i style="border-color:var(--caps)"></i>CAPS descent</span>
-      <span>Dashed = option does not work</span>
+      <span><i class="d" style="border-color:var(--bad)"></i>Dashed = option does not work</span>
+      <span><i style="border-color:var(--accent)"></i>Visualization fence (NM rings)</span>
     </div>
   </div>
   <aside id="panel">
+    <section class="sec"><h2>Airport</h2>
+      <div class="row2" style="grid-template-columns:1fr auto;align-items:end">
+        <div><label class="f" for="icao">ICAO / FAA identifier</label><input type="text" id="icao" value="KSJC" maxlength="5" autocomplete="off" spellcheck="false"></div>
+        <button class="btn" id="icaogo" style="padding:7px 12px">Load</button>
+      </div>
+      <div class="fine" id="apinfo" style="margin-top:6px"></div>
+      <label class="f" style="margin-top:10px">Departure runway</label>
+      <div class="seg" id="rwy"></div>
+      <div class="row2" style="margin-top:10px">
+        <div><label class="f" for="rem">Departure point</label><select id="rem"></select></div>
+        <div></div>
+      </div>
+      <div class="rng"><label for="hw">Headwind <b id="hwv"></b></label><input type="range" id="hw" min="-15" max="30" step="1"></div>
+      <div class="rng"><label for="xw">Crosswind <b id="xwv"></b></label><input type="range" id="xw" min="-20" max="20" step="1"></div>
+    </section>
+
     <section class="sec"><h2>Aircraft &amp; pilot</h2>
-      <label class="f" for="ac">Aircraft</label><select id="ac"></select>
+      <label class="f" for="ac">Aircraft profile</label><select id="ac"></select>
       <div class="fine" id="acnote" style="margin-top:6px"></div>
+      <details id="poh" style="margin-top:8px"><summary>Enter / edit POH data</summary>
+        <p class="fine">Use the numbers from <b>your</b> POH/AFM at maximum takeoff weight, sea level, standard day. Nothing here is pre-filled from memory.</p>
+        <div class="form">
+          <label>Name<input id="f_name" type="text"></label>
+          <label>Max takeoff weight (lb)<input id="f_mtow" type="number"></label>
+          <label>Wing area (ft²)<input id="f_wing" type="number" step="0.1"></label>
+          <label>Rotation speed (KIAS)<input id="f_vr" type="number"></label>
+          <label>Takeoff climb speed (KIAS)<input id="f_vy" type="number"></label>
+          <label>Climb rate at that speed (fpm)<input id="f_roc" type="number"></label>
+          <label>Takeoff ground roll (ft)<input id="f_gr" type="number"></label>
+          <label>Best glide speed (KIAS)<input id="f_vbg" type="number"></label>
+          <label>Glide ratio (L/D)<input id="f_ld" type="number" step="0.1"></label>
+          <label>…or glide NM per 1000 ft<input id="f_nm" type="number" step="0.01"></label>
+          <label>Stall, flaps up (KIAS)<input id="f_vs0" type="number"></label>
+          <label>Stall, takeoff flaps (KIAS)<input id="f_vs50" type="number"></label>
+          <label>Stall, landing flaps (KIAS)<input id="f_vs100" type="number"></label>
+          <label>Landing ground roll (ft)<input id="f_lr" type="number"></label>
+          <label>Approach / touchdown speed (KIAS)<input id="f_vtd" type="number"></label>
+          <label class="chk"><input id="f_caps" type="checkbox"> Has airframe parachute</label>
+          <label>Parachute: your minimum AGL (ft)<input id="f_cmin" type="number"></label>
+          <label>Parachute: max deploy speed (KIAS)<input id="f_cspd" type="number"></label>
+          <label>Parachute: altitude loss (ft)<input id="f_closs" type="number"></label>
+          <label>Parachute: descent rate (fpm)<input id="f_cdesc" type="number"></label>
+        </div>
+        <div class="views" style="margin-top:10px">
+          <button class="btn" id="f_apply">Use</button><button class="btn" id="f_save">Save in this browser</button>
+          <button class="btn" id="f_export">Export JSON</button><label class="btn" for="f_import" style="cursor:pointer">Import JSON</label><input id="f_import" type="file" accept=".json,application/json" hidden>
+        </div>
+        <div class="fine" id="f_msg" style="margin-top:6px"></div>
+        <textarea id="f_json" class="fine" rows="5" readonly hidden aria-label="Exported profile JSON"></textarea>
+      </details>
       <div class="rng"><label for="wt">Weight <b id="wtv"></b></label><input type="range" id="wt"></div>
       <div class="rng"><label for="rx">Reaction <b id="rxv"></b></label><input type="range" id="rx" min="1" max="10" step="0.5"></div>
       <div class="rng"><label for="bk">Bank <b id="bkv"></b></label><input type="range" id="bk" min="25" max="60" step="5"></div>
       <div class="rng"><label for="sv">Startle <b id="svv"></b></label><input type="range" id="sv" min="0" max="1" step="0.25"></div>
-    </section>
-
-    <section class="sec"><h2>Runway</h2>
-      <div class="seg" id="rwy"></div>
-      <div class="row2" style="margin-top:10px">
-        <div><label class="f" for="wind">Wind</label><select id="wind"></select></div>
-        <div><label class="f" for="rem">Departure point</label><select id="rem"></select></div>
-      </div>
-      <div class="fine" id="beyond" style="margin-top:8px"></div>
     </section>
 
     <section class="sec"><h2>Engine fails at</h2>
@@ -122,15 +168,16 @@ label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
     <section class="sec"><h2>View</h2>
       <div class="views" id="views">
         <button class="btn" data-v="iso" aria-pressed="true">3D</button><button class="btn" data-v="top" aria-pressed="false">Top</button>
-        <button class="btn" data-v="side" aria-pressed="false">Side</button><button class="btn" id="chase" aria-pressed="false">Chase</button>
-        <button class="btn" id="climb">▶ Climb-out</button>
+        <button class="btn" data-v="side" aria-pressed="false">Side</button><button class="btn" data-v="fence" aria-pressed="false">Fence</button>
+        <button class="btn" id="chase" aria-pressed="false">Chase</button><button class="btn" id="climb">▶ Climb-out</button>
       </div>
       <label class="fine" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="sat" checked> Satellite imagery <span id="imgstat"></span></label>
+      <div class="rng"><label for="fence">Fence radius <b id="fencev"></b></label><input type="range" id="fence" min="1" max="4" step="1" value="3"></div>
       <div class="rng"><label for="vex">Height scale</label><input type="range" id="vex" min="1" max="8" step="0.5" value="3"></div>
       <div class="rng"><label for="spd">Playback</label><input type="range" id="spd" min="1" max="8" step="1" value="3"></div>
     </section>
 
-    <p class="fine"><span id="assump"></span> Study model, not operational guidance. Aircraft figures are approximate from memory of typical POH data; verify against your own POH/AFM before relying on any number. Heights are exaggerated vertically so the climb-out is readable. Imagery: Esri World Imagery (© Esri, Maxar, Earthstar Geographics, and the GIS user community), loaded live; runway geometry from FAA-derived OurAirports data.</p>
+    <p class="fine"><span id="assump"></span> Study model, not operational guidance. Aircraft performance comes only from the POH numbers entered or loaded above; the model adds its own assumptions for flap drag, pilot roll rate and CAPS timing. Heights are exaggerated vertically so the climb-out is readable. Imagery: Esri World Imagery (© Esri, Maxar, Earthstar Geographics, and the GIS user community), loaded live. Runways: OurAirports (public domain, FAA-derived), loaded live.</p>
   </aside>
 </div>
 
@@ -1188,44 +1235,17 @@ label.f{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
 } )();
 </script>
 <script>
-window.EFATO_CFG={"order":["sr22t","sr22","sr20","c172s","c182t","pa28","a36","m20j","da40","malibu","m500","m600","m700","pc12","e1000"],"aircraft":{"sr22t":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"sr22t","name":"Cirrus SR22T","max_weight_lb":3600,"ref_weight_lb":3600,"wing_area_ft2":144.9,"takeoff":{"vr_kias":78,"vy_kias":96,"roc_ref_fpm":1150,"ground_roll_ref_ft":1450,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":88,"glide_ratio_ref":9.0},"stall_kias_ref":{"0":74,"50":69,"100":64},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1700,"touchdown_kias":70,"roll_margin_factor":1.25},"caps":{"max_deploy_kias":133,"min_agl_level_ft":600,"altitude_loss_to_inflate_ft":400,"descent_rate_fpm":1700,"inflation_time_s":8,"forward_travel_ft":600,"decision_time_after_recognition_s":2.0},"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"sr22":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"sr22","name":"Cirrus SR22","max_weight_lb":3600,"ref_weight_lb":3600,"wing_area_ft2":144.9,"takeoff":{"vr_kias":77,"vy_kias":96,"roc_ref_fpm":1270,"ground_roll_ref_ft":1400,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":88,"glide_ratio_ref":9.0},"stall_kias_ref":{"0":74,"50":69,"100":64},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1700,"touchdown_kias":70,"roll_margin_factor":1.25},"caps":{"max_deploy_kias":133,"min_agl_level_ft":600,"altitude_loss_to_inflate_ft":400,"descent_rate_fpm":1700,"inflation_time_s":8,"forward_travel_ft":600,"decision_time_after_recognition_s":2.0},"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"sr20":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"sr20","name":"Cirrus SR20","max_weight_lb":3050,"ref_weight_lb":3050,"wing_area_ft2":144.9,"takeoff":{"vr_kias":73,"vy_kias":92,"roc_ref_fpm":850,"ground_roll_ref_ft":1000,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":85,"glide_ratio_ref":9.0},"stall_kias_ref":{"0":65,"50":60,"100":56},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1400,"touchdown_kias":64,"roll_margin_factor":1.25},"caps":{"max_deploy_kias":133,"min_agl_level_ft":600,"altitude_loss_to_inflate_ft":400,"descent_rate_fpm":1700,"inflation_time_s":8,"forward_travel_ft":600,"decision_time_after_recognition_s":2.0},"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"c172s":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"c172s","name":"Cessna 172S Skyhawk","max_weight_lb":2550,"ref_weight_lb":2550,"wing_area_ft2":174,"takeoff":{"vr_kias":55,"vy_kias":74,"roc_ref_fpm":730,"ground_roll_ref_ft":960,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":68,"glide_ratio_ref":9.0},"stall_kias_ref":{"0":53,"50":48,"100":47},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1000,"touchdown_kias":55,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"c182t":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"c182t","name":"Cessna 182T Skylane","max_weight_lb":3100,"ref_weight_lb":3100,"wing_area_ft2":174,"takeoff":{"vr_kias":55,"vy_kias":80,"roc_ref_fpm":924,"ground_roll_ref_ft":850,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":80,"glide_ratio_ref":8.5},"stall_kias_ref":{"0":54,"50":50,"100":49},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1150,"touchdown_kias":58,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"pa28":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"pa28","name":"Piper PA-28-181 Archer","max_weight_lb":2550,"ref_weight_lb":2550,"wing_area_ft2":170,"takeoff":{"vr_kias":60,"vy_kias":76,"roc_ref_fpm":667,"ground_roll_ref_ft":1050,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":76,"glide_ratio_ref":8.5},"stall_kias_ref":{"0":55,"50":52,"100":50},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1100,"touchdown_kias":58,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"a36":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"a36","name":"Beechcraft Bonanza A36","max_weight_lb":3650,"ref_weight_lb":3650,"wing_area_ft2":181,"takeoff":{"vr_kias":70,"vy_kias":98,"roc_ref_fpm":1030,"ground_roll_ref_ft":1150,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":100,"glide_ratio_ref":10.0},"stall_kias_ref":{"0":66,"50":62,"100":58},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1500,"touchdown_kias":70,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"m20j":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"m20j","name":"Mooney M20J","max_weight_lb":2740,"ref_weight_lb":2740,"wing_area_ft2":167,"takeoff":{"vr_kias":63,"vy_kias":88,"roc_ref_fpm":900,"ground_roll_ref_ft":1050,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":88,"glide_ratio_ref":10.0},"stall_kias_ref":{"0":59,"50":55,"100":52},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1500,"touchdown_kias":66,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"da40":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"da40","name":"Diamond DA40","max_weight_lb":2535,"ref_weight_lb":2535,"wing_area_ft2":145.3,"takeoff":{"vr_kias":59,"vy_kias":68,"roc_ref_fpm":1000,"ground_roll_ref_ft":1000,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":73,"glide_ratio_ref":10.5},"stall_kias_ref":{"0":49,"50":47,"100":45},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1100,"touchdown_kias":52,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"malibu":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"malibu","name":"Piper PA-46 Malibu / Mirage","max_weight_lb":4300,"ref_weight_lb":4300,"wing_area_ft2":175,"takeoff":{"vr_kias":72,"vy_kias":100,"roc_ref_fpm":1100,"ground_roll_ref_ft":1450,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":1.0},"glide":{"vbg_kias_ref":100,"glide_ratio_ref":10.0},"stall_kias_ref":{"0":69,"50":64,"100":61},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1400,"touchdown_kias":72,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"m500":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"m500","name":"Piper M500 (turboprop)","max_weight_lb":5092,"ref_weight_lb":5092,"wing_area_ft2":175,"takeoff":{"vr_kias":75,"vy_kias":110,"roc_ref_fpm":1400,"ground_roll_ref_ft":1500,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":100,"glide_ratio_ref":12.0},"stall_kias_ref":{"0":74,"50":68,"100":62},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1500,"touchdown_kias":78,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"m600":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"m600","name":"Piper M600 (turboprop)","max_weight_lb":6000,"ref_weight_lb":6000,"wing_area_ft2":200,"takeoff":{"vr_kias":80,"vy_kias":120,"roc_ref_fpm":1200,"ground_roll_ref_ft":1700,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":105,"glide_ratio_ref":12.0},"stall_kias_ref":{"0":76,"50":70,"100":64},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1700,"touchdown_kias":80,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"m700":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"m700","name":"Piper M700 Fury (turboprop)","max_weight_lb":6000,"ref_weight_lb":6000,"wing_area_ft2":200,"takeoff":{"vr_kias":80,"vy_kias":120,"roc_ref_fpm":1450,"ground_roll_ref_ft":1700,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":105,"glide_ratio_ref":12.0},"stall_kias_ref":{"0":76,"50":70,"100":64},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1700,"touchdown_kias":80,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"pc12":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"pc12","name":"Pilatus PC-12 NGX (turboprop)","max_weight_lb":10450,"ref_weight_lb":10450,"wing_area_ft2":279.4,"takeoff":{"vr_kias":80,"vy_kias":125,"roc_ref_fpm":1700,"ground_roll_ref_ft":2000,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":110,"glide_ratio_ref":13.0},"stall_kias_ref":{"0":85,"50":75,"100":67},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1800,"touchdown_kias":82,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}},"e1000":{"_note":"APPROXIMATE values -- verify against your POH/AFM.","id":"e1000","name":"Epic E1000 GX (turboprop)","max_weight_lb":7000,"ref_weight_lb":7000,"wing_area_ft2":152,"takeoff":{"vr_kias":85,"vy_kias":135,"roc_ref_fpm":1800,"ground_roll_ref_ft":1700,"ground_roll_weight_exp":1.8,"ground_roll_sigma_exp":0.8},"glide":{"vbg_kias_ref":120,"glide_ratio_ref":12.0},"stall_kias_ref":{"0":80,"50":73,"100":68},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1700,"touchdown_kias":85,"roll_margin_factor":1.25},"caps":null,"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30}}},"airport":{"_note":"KSJC Norman Y. Mineta San Jose Intl. Dimensions are approximate -- verify with the current Chart Supplement / airport diagram. Headings are not needed: winds are expressed as components relative to the runway.","icao":"KSJC","elevation_ft":62,"runways":{"12L":{"length_ft":11000,"width_ft":150,"parallel":"12R","parallel_side":1,"ahead_notes":"SE of airport: dense urban San Jose (downtown, I-880, Hwy 87, Coleman/Guadalupe corridor) -- very few off-airport options."},"12R":{"length_ft":11000,"width_ft":150,"parallel":"12L","parallel_side":-1,"ahead_notes":"SE of airport: dense urban San Jose -- very few off-airport options."},"30L":{"length_ft":11000,"width_ft":150,"parallel":"30R","parallel_side":1,"ahead_notes":"NW of airport: Guadalupe Slough / Alviso salt ponds / SF Bay shoreline -- water and marsh beyond the runway end; limited roads."},"30R":{"length_ft":11000,"width_ft":150,"parallel":"30L","parallel_side":-1,"ahead_notes":"NW of airport: Guadalupe Slough / Alviso salt ponds / SF Bay shoreline."}},"parallel_spacing_ft":748,"infield_halfwidth_ft":1000,"_infield_note":"Half-width of airport property around the runway centerline treated as 'on-airport' for CAPS canopy touchdown. Crude -- refine from the airport diagram.","default_wind_scenarios":{"30R":[{"name":"NW sea breeze 10 kt","headwind_kt":9,"crosswind_kt":-4},{"name":"NW sea breeze 18 kt","headwind_kt":16,"crosswind_kt":-8},{"name":"calm","headwind_kt":0,"crosswind_kt":0}],"30L":[{"name":"NW sea breeze 10 kt","headwind_kt":9,"crosswind_kt":-4},{"name":"NW sea breeze 18 kt","headwind_kt":16,"crosswind_kt":-8},{"name":"calm","headwind_kt":0,"crosswind_kt":0}],"12R":[{"name":"SE flow 10 kt","headwind_kt":9,"crosswind_kt":4},{"name":"calm","headwind_kt":0,"crosswind_kt":0},{"name":"NW tailwind 8 kt","headwind_kt":-8,"crosswind_kt":0}],"12L":[{"name":"SE flow 10 kt","headwind_kt":9,"crosswind_kt":4},{"name":"calm","headwind_kt":0,"crosswind_kt":0},{"name":"NW tailwind 8 kt","headwind_kt":-8,"crosswind_kt":0}]},"departure_points":{"_note":"remaining_ft = pavement left ahead of brake release. Full-length = runway length. Shorter values emulate intersection departures (check the diagram for actual taxiway intersections).","remaining_ft":[11000,8000,6000,4000]},"_geo_note":"Thresholds (lat/lon of the pavement end the takeoff roll starts from) and true headings from OurAirports (FAA-derived). 12L/30R and 12R/30L are both 11,000 ft; displaced thresholds (landing only) are ignored. Spacing 748 ft computed from the coordinates.","geo":{"12L":{"lat":37.375,"lon":-121.94000244,"hdg":139.0},"12R":{"lat":37.37369918,"lon":-121.94200135,"hdg":138.8},"30R":{"lat":37.35229874,"lon":-121.91500092,"hdg":319.0},"30L":{"lat":37.35100174,"lon":-121.91699981,"hdg":318.8}},"arp":{"lat":37.3626,"lon":-121.9291}}};
+window.EFATO_CFG={"order":["sr22t"],"aircraft":{"sr22t":{"_note":"Cirrus SR22T G5 -- every number below is read from the Pilot's Operating Handbook P/N 13772-005 (3600 lb unless stated). See _sources. Items under _model are modelling assumptions, NOT POH data.","id":"sr22t","name":"Cirrus SR22T (G5 POH)","max_weight_lb":3600,"ref_weight_lb":3600,"wing_area_ft2":144.9,"takeoff":{"vr_kias":80,"vy_kias":91,"roc_ref_fpm":1186,"ground_roll_ref_ft":1517,"ground_roll_weight_exp":4.7,"ground_roll_sigma_exp":0.98},"glide":{"vbg_kias_ref":92,"glide_ratio_ref":8.6},"stall_kias_ref":{"0":74,"50":70,"100":64},"flap_cd0_delta":{"0":0.0,"50":0.012,"100":0.04},"landing":{"roll_ref_ft":1178,"touchdown_kias":79,"roll_margin_factor":1.25},"caps":{"max_deploy_kias":140,"min_agl_level_ft":600,"altitude_loss_to_inflate_ft":400,"descent_rate_fpm":1700,"inflation_time_s":8,"forward_travel_ft":600,"decision_time_after_recognition_s":2.0},"pilot":{"turn_speed_margin_vs":1.15,"max_roll_rate_deg_s":15,"speed_time_const_s":2.0,"gamma_time_const_s":1.0,"arrival_margin_req_ft":50,"max_align_err_deg":30},"_sources":{"wing_area":"Sec 1: Wing Area = 144.9 sq ft","vr":"Sec 4 Airspeeds for Normal Operation: Takeoff rotation, normal, flaps 50% = 80 KIAS","vy_roc":"Sec 5 Takeoff Climb Gradient, flaps 50%, 3600 lb, SL, ISA: 91 KIAS, 782 ft/NM -> 782*91/60 = 1186 fpm","ground_roll":"Sec 5 Takeoff Distance 3600 lb, flaps 50%, SL ISA ground roll 1517 ft (2900 lb: 544 ft -> weight exponent ln(1517/544)/ln(3600/2900)=4.7; 4000 ft ISA: 1856 ft -> density exponent 0.98)","glide":"Sec 3 Maximum Glide: best glide 92 KIAS at 3600 lb, max glide ratio ~8.6:1, prop windmilling, flaps up","stall":"Sec 5 Stall Speeds 3600 lb, 0 deg bank, most fwd CG, KIAS: flaps 0% 74, flaps 50% 70, flaps 100% 64","landing":"Sec 5 Landing Distance 3600 lb, flaps 100%, SL ISA ground roll 1178 ft; speed over 50 ft 79 KIAS (VREF used as touchdown speed)","caps_speed":"Sec 3 CAPS Deployment: max demonstrated deployment speed 140 KIAS","caps_loss":"Sec 10 Deployment Altitude: no minimum altitude set; level-flight altitude loss demonstrated < 400 ft; POH advises >= 2000 ft AGL if circumstances permit","caps_descent":"Sec 3: descent rate expected < 1700 fpm","caps_min_agl_level_ft":"NOT a POH value: owner-specified planning minimum (600 ft AGL)"},"_model":"flap_cd0_delta, landing roll_margin_factor, CAPS inflation_time_s / forward_travel_ft / decision_time, and all 'pilot' entries are modelling assumptions."}},"airport_fallback":{"icao":"KSJC","elevation_ft":47,"arp":{"lat":37.3626,"lon":-121.9291},"infield_halfwidth_ft":1000,"runways":{"12L":{"lat":37.375,"lon":-121.94000244,"hdg":139.0,"length_ft":11000,"opp":"30R","par":"12R","par_y":748},"12R":{"lat":37.37369918,"lon":-121.94200135,"hdg":138.8,"length_ft":11000,"opp":"30L","par":"12L","par_y":-748},"30L":{"lat":37.35100174,"lon":-121.91699981,"hdg":318.8,"length_ft":11000,"opp":"12R","par":"30R","par_y":748},"30R":{"lat":37.35229874,"lon":-121.91500092,"hdg":319.0,"length_ft":11000,"opp":"12L","par":"30L","par_y":-748}}}};
 (function(){
 const CODE_COLOR={0:'#b2182b',1:'#a6dba0',2:'#fdb863',3:'#5aae61',4:'#4393c3',5:'#92c5de',6:'#8073ac',7:'#1b7837'};
 const CODE_TEXT={0:'No good option',1:'Straight ahead',2:'Turn-back',3:'Straight or turn-back',4:'CAPS only',5:'Straight or CAPS',6:'Turn-back or CAPS',7:'Any option'};
-const RECIP={'12L':'30R','12R':'30L','30L':'12R','30R':'12L'};
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('en-US');
-const S=0.01;               // 1 scene unit = 100 ft
-let D=null, vex=3;
-const st={ac:'sr22t',wt:3400,rx:4,bk:45,sv:0,rwy:'30R',wind:0,rem:11000,hi:15,show:{straight:true,ret:true,par:false,caps:true},mode:null,view:'iso',chase:false};
-let renderer,scene,camera,controls,dyn,plane,anim=null,theme={};
-// ---------- live satellite imagery (Web-Mercator tiles mosaicked into one texture)
-const TZ=16,TH=8,FTDEG=364567;let mosaic=null,imgTex=null,imgReady=false,mPx0=0,mPy0=0;
-const lonPx=lo=>((lo+180)/360)*Math.pow(2,TZ)*256;
-const latPx=la=>{const r=la*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,TZ)*256;};
-function localLL(x,y){const g=D.geo[st.rwy],hd=g.hdg*Math.PI/180,s=x+d0();
-  const e=s*Math.sin(hd)+y*Math.cos(hd),n=s*Math.cos(hd)-y*Math.sin(hd);
-  return [g.lat+n/FTDEG,g.lon+e/(FTDEG*Math.cos(g.lat*Math.PI/180))];}
-function loadImagery(){
-  const tx0=Math.floor(lonPx(D.arp.lon)/256)-TH,ty0=Math.floor(latPx(D.arp.lat)/256)-TH,N=TH*2;
-  mPx0=tx0*256;mPy0=ty0*256;
-  mosaic=document.createElement('canvas');mosaic.width=mosaic.height=N*256;
-  const cx=mosaic.getContext('2d');cx.fillStyle=theme.ground;cx.fillRect(0,0,mosaic.width,mosaic.height);
-  imgTex=new THREE.CanvasTexture(mosaic);imgTex.keep=true;imgTex.anisotropy=8;
-  let done=0,ok=0,dirty=false;const total=N*N,stat=$('imgstat');
-  const flush=()=>{if(dirty){imgTex.needsUpdate=true;dirty=false;}};
-  setInterval(flush,400);
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
-    const im=new Image();im.crossOrigin='anonymous';
-    im.onload=()=>{cx.drawImage(im,i*256,j*256);ok++;dirty=true;fin();};
-    im.onerror=fin;
-    im.src=`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${TZ}/${ty0+j}/${tx0+i}`;}
-  function fin(){done++;stat.textContent=done<total?`loading ${Math.round(done/total*100)}%`:(ok?'':'(offline: imagery unavailable)');
-    if(done===total){flush();if(ok>total*.2&&!imgReady){imgReady=true;build();}}
-    else if(ok>40&&!imgReady&&done%24===0){imgReady=true;build();}}}
-const useSat=()=>imgReady&&$('sat').checked;
-const inkC=()=>useSat()?'#ffffff':theme.ink;
-
+const S=0.01, NM=6076.12, FTDEG=364567;     // 1 scene unit = 100 ft
+let vex=3;
+const HEIGHTS=[];for(let h=50;h<=1800;h+=50)HEIGHTS.push(h);
+const st={ac:'sr22t',wt:3400,rx:4,bk:45,sv:0,hw:0,xw:0,rwy:null,remF:1,hi:15,fence:3,show:{straight:true,ret:true,par:false,caps:true},view:'iso',chase:false};
+let AP=null,renderer,scene,camera,controls,dyn,plane,anim=null,theme={};
 // JavaScript port of efato/sim.py + efato/viz_export.py (keep the two in sync).
 // Frame: x along takeoff direction from brake release (ft), y to the right (ft), h AGL (ft).
 const G=32.174, KT=1.68781, RHO0=0.0023769;
@@ -1243,7 +1263,7 @@ class Ctx{
     this.vs_eas=Math.sqrt(2*this.W/(RHO0*this.S*this.CLmax));this.vbg_eas=vbg*Math.sqrt(this.W/Wref);
     this.wx=-sc.headwind_kt*KT;this.wy=-sc.crosswind_kt*KT;
     const rw=apt.runways[sc.runway];this.rwy_len=rw.length_ft;this.d0=this.rwy_len-sc.remaining_ft;
-    this.par_y=rw.parallel_side*apt.parallel_spacing_ft;
+    this.par_y=rw.par_y==null?null:rw.par_y;
     const p=ac.pilot;this.turn_margin=p.turn_speed_margin_vs;this.react=sc.reaction_s+4*(sc.startle||0);this.speed_bias=8*KT*(sc.startle||0);this.roll_rate=p.max_roll_rate_deg_s*Math.PI/180;
     this.tau_v=p.speed_time_const_s;this.tau_g=p.gamma_time_const_s;this.h_req=p.arrival_margin_req_ft;
     this.max_align=p.max_align_err_deg*Math.PI/180;this.ld_eff=ld;
@@ -1348,7 +1368,7 @@ function evaluate(c,hFail,opts){
   if(!hit&&xHi>xMin){
     const cands=[];for(let i=0;i<6;i++)cands.push(xMin+(xHi-xMin)*i/5);
     let done=false;
-    for(const [tgt,ay] of [['dep',0],['par',c.par_y]]){
+    for(const [tgt,ay] of (c.par_y==null?[['dep',0]]:[['dep',0],['par',c.par_y]])){
       const dirs=ay>=0?[1,-1]:[-1,1];
       for(const d of dirs){for(const ax of cands){
         const q=fly(c,st1,{tOff:c.react,aim:[ax,ay],turnDir:d,bankDeg:sc.bank_deg,bankAfter:sc.bank_after_s,record:rec});
@@ -1378,248 +1398,287 @@ function evaluate(c,hFail,opts){
 if(typeof module!=='undefined')module.exports={Ctx,evaluate,takeoffToHeight};
 
 const CFG=window.EFATO_CFG;
-let AC=null,CTX=null,CACHE={};
-const ctxKey=()=>[st.ac,st.rwy,st.wind,st.rem,st.wt,st.rx,st.bk,st.sv].join('|');
-function ctxFor(){const k=ctxKey();if(CACHE.k!==k){CACHE={k};
-  AC=CFG.aircraft[st.ac];const w=D.winds[st.rwy][st.wind];
-  CTX=new Ctx(AC,CFG.airport,{runway:st.rwy,remaining_ft:st.rem,headwind_kt:w.hw,crosswind_kt:w.xw,weight_lb:st.wt,isa_dev_c:10,reaction_s:st.rx,bank_after_s:2,bank_deg:st.bk,flaps_pct:50,startle:st.sv});}
+// ---------------------------------------------------------------- aircraft profiles
+let PROF={};CFG.order.forEach(i=>PROF[i]=CFG.aircraft[i]);
+const LS='efato.profiles.v1';
+function loadSaved(){try{const o=JSON.parse(localStorage.getItem(LS)||'{}');for(const k in o)PROF[k]=o[k];}catch(e){}}
+function saveSaved(){try{const o={};for(const k in PROF)if(!CFG.aircraft[k]&&k!=='unsaved')o[k]=PROF[k];localStorage.setItem(LS,JSON.stringify(o));return true;}catch(e){return false;}}
+const FIELDS=[['f_mtow',p=>p.max_weight_lb],['f_wing',p=>p.wing_area_ft2],['f_vr',p=>p.takeoff.vr_kias],['f_vy',p=>p.takeoff.vy_kias],
+ ['f_roc',p=>p.takeoff.roc_ref_fpm],['f_gr',p=>p.takeoff.ground_roll_ref_ft],['f_vbg',p=>p.glide.vbg_kias_ref],['f_ld',p=>p.glide.glide_ratio_ref],
+ ['f_vs0',p=>p.stall_kias_ref['0']],['f_vs50',p=>p.stall_kias_ref['50']],['f_vs100',p=>p.stall_kias_ref['100']],['f_lr',p=>p.landing.roll_ref_ft],['f_vtd',p=>p.landing.touchdown_kias]];
+function fillForm(p){$('f_name').value=p.name||'';FIELDS.forEach(([id,g])=>{const v=p&&g(p);$(id).value=(v==null?'':v);});
+  $('f_nm').value=p.glide&&p.glide.glide_ratio_ref?(p.glide.glide_ratio_ref/NM*1000).toFixed(2):'';
+  const c=p.caps;$('f_caps').checked=!!c;$('f_cmin').value=c?c.min_agl_level_ft:'';$('f_cspd').value=c?c.max_deploy_kias:'';$('f_closs').value=c?c.altitude_loss_to_inflate_ft:'';$('f_cdesc').value=c?c.descent_rate_fpm:'';}
+function readForm(){const n=id=>parseFloat($(id).value);const miss=[];
+  const need=(id,label)=>{const v=n(id);if(!(v>0))miss.push(label);return v;};
+  const mtow=need('f_mtow','max weight'),wing=need('f_wing','wing area'),vr=need('f_vr','rotation speed'),vy=need('f_vy','climb speed'),roc=need('f_roc','climb rate'),
+    gr=need('f_gr','takeoff ground roll'),vbg=need('f_vbg','best glide speed'),vs0=need('f_vs0','stall flaps up'),vs50=need('f_vs50','stall takeoff flaps'),
+    vs100=need('f_vs100','stall landing flaps'),lr=need('f_lr','landing roll'),vtd=need('f_vtd','touchdown speed');
+  let ld=n('f_ld');if(!(ld>0)){const nm=n('f_nm');if(nm>0)ld=nm*NM/1000;}if(!(ld>0))miss.push('glide ratio (or NM per 1000 ft)');
+  let caps=null;if($('f_caps').checked){const cm=need('f_cmin','parachute minimum AGL'),cs=need('f_cspd','parachute max speed'),cl=need('f_closs','parachute altitude loss'),cd=need('f_cdesc','parachute descent rate');
+    caps={max_deploy_kias:cs,min_agl_level_ft:cm,altitude_loss_to_inflate_ft:cl,descent_rate_fpm:cd,inflation_time_s:8,forward_travel_ft:600,decision_time_after_recognition_s:2};}
+  if(miss.length)return {err:'Missing: '+miss.join(', ')};
+  return {p:{id:'unsaved',name:$('f_name').value.trim()||'My aircraft',max_weight_lb:mtow,ref_weight_lb:mtow,wing_area_ft2:wing,
+    takeoff:{vr_kias:vr,vy_kias:vy,roc_ref_fpm:roc,ground_roll_ref_ft:gr,ground_roll_weight_exp:1.8,ground_roll_sigma_exp:1.0},
+    glide:{vbg_kias_ref:vbg,glide_ratio_ref:ld},stall_kias_ref:{'0':vs0,'50':vs50,'100':vs100},flap_cd0_delta:{'0':0,'50':0.012,'100':0.04},
+    landing:{roll_ref_ft:lr,touchdown_kias:vtd,roll_margin_factor:1.25},caps,pilot:CFG.aircraft[CFG.order[0]].pilot}};}
+// ---------------------------------------------------------------- airport database (OurAirports, loaded live)
+let RWY_CSV=null;
+function csvRow(line){const o=[];let i=0,f='',q=false;for(;i<line.length;i++){const ch=line[i];
+  if(q){if(ch==='"'){if(line[i+1]==='"'){f+='"';i++;}else q=false;}else f+=ch;}else if(ch==='"')q=true;else if(ch===','){o.push(f);f='';}else f+=ch;}o.push(f);return o;}
+const toRad=d=>d*Math.PI/180;
+function brg(a,b,c,d){const y=Math.sin(toRad(d-b))*Math.cos(toRad(c)),x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(toRad(d-b));return (Math.atan2(y,x)*180/Math.PI+360)%360;}
+function distFt(a,b,c,d){const n=(c-a)*FTDEG,e=(d-b)*FTDEG*Math.cos(toRad((a+c)/2));return Math.hypot(n,e);}
+function parseAirport(text,icao){
+  const lines=text.split(/\r?\n/),h=csvRow(lines[0]),ix=n=>h.indexOf(n),rows=[];
+  for(let i=1;i<lines.length;i++){const l=lines[i];if(l.indexOf('"'+icao+'"')<0)continue;const r=csvRow(l);if(r[ix('airport_ident')]===icao)rows.push(r);}
+  if(!rows.length)return null;
+  const ends={};let sl=0,so=0,sla=0,slo=0,n=0,ne=0;
+  rows.forEach(r=>{const g=k=>r[ix(k)];if(g('closed')==='1'||/WATER|^W$/i.test(g('surface')))return;
+    const a=[+g('le_latitude_deg'),+g('le_longitude_deg')],b=[+g('he_latitude_deg'),+g('he_longitude_deg')];
+    if(!(isFinite(a[0])&&g('le_latitude_deg')!==''&&g('he_latitude_deg')!==''&&isFinite(b[0])))return;
+    const len=distFt(a[0],a[1],b[0],b[1]),hl=g('le_heading_degT')!==''?+g('le_heading_degT'):brg(a[0],a[1],b[0],b[1]),hh=g('he_heading_degT')!==''?+g('he_heading_degT'):(hl+180)%360;
+    ends[g('le_ident')]={lat:a[0],lon:a[1],hdg:hl,length_ft:len,opp:g('he_ident')};ends[g('he_ident')]={lat:b[0],lon:b[1],hdg:hh,length_ft:len,opp:g('le_ident')};
+    [[a,'le'],[b,'he']].forEach(([p,k])=>{sla+=p[0];slo+=p[1];n++;const e=+g(k+'_elevation_ft');if(g(k+'_elevation_ft')!==''&&isFinite(e)){sl+=e;ne++;}});});
+  const ids=Object.keys(ends);if(!ids.length)return {};
+  ids.forEach(id=>{const A=ends[id],hd=toRad(A.hdg);A.par=null;A.par_y=null;let best=1e9;
+    ids.forEach(o=>{if(o===id||o===A.opp)return;const B=ends[o];if(Math.abs(((B.hdg-A.hdg+540)%360)-180)>6)return;
+      const e=(B.lon-A.lon)*FTDEG*Math.cos(toRad(A.lat)),nn=(B.lat-A.lat)*FTDEG,al=e*Math.sin(hd)+nn*Math.cos(hd),y=e*Math.cos(hd)-nn*Math.sin(hd);
+      if(Math.abs(y)>100&&Math.abs(y)<1800&&Math.abs(al)<A.length_ft*.6&&Math.abs(y)<best){best=Math.abs(y);A.par=o;A.par_y=Math.round(y);}});});
+  return {icao,elevation_ft:ne?sl/ne:0,arp:{lat:sla/n,lon:slo/n},infield_halfwidth_ft:1000,runways:ends};}
+async function getAirport(icao){
+  if(CFG.airport_fallback&&CFG.airport_fallback.icao===icao)return CFG.airport_fallback;
+  if(!RWY_CSV)RWY_CSV=await fetch('https://davidmegginson.github.io/ourairports-data/runways.csv').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
+  return parseAirport(RWY_CSV,icao);}
+// ---------------------------------------------------------------- live satellite imagery (Web-Mercator tiles -> one texture)
+const TZ=15,TH=8;let mosaic=null,imgTex=null,imgReady=false,mPx0=0,mPy0=0,imgTimer=0,imgTok=0;
+const lonPx=lo=>((lo+180)/360)*Math.pow(2,TZ)*256;
+const latPx=la=>{const r=la*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,TZ)*256;};
+const d0=()=>AP.runways[st.rwy].length_ft-curRem();
+const curRem=()=>Math.round(AP.runways[st.rwy].length_ft*st.remF/100)*100;
+function localLL(x,y){const g=AP.runways[st.rwy],hd=g.hdg*Math.PI/180,s=x+d0();
+  const e=s*Math.sin(hd)+y*Math.cos(hd),n=s*Math.cos(hd)-y*Math.sin(hd);
+  return [g.lat+n/FTDEG,g.lon+e/(FTDEG*Math.cos(g.lat*Math.PI/180))];}
+function localOf(lat,lon){const g=AP.runways[st.rwy],hd=g.hdg*Math.PI/180,e=(lon-g.lon)*FTDEG*Math.cos(g.lat*Math.PI/180),n=(lat-g.lat)*FTDEG;
+  return [e*Math.sin(hd)+n*Math.cos(hd)-d0(),e*Math.cos(hd)-n*Math.sin(hd)];}
+function loadImagery(){
+  const tok=++imgTok;if(imgTimer)clearInterval(imgTimer);imgReady=false;if(imgTex){imgTex.keep=false;imgTex.dispose();}
+  const tx0=Math.floor(lonPx(AP.arp.lon)/256)-TH,ty0=Math.floor(latPx(AP.arp.lat)/256)-TH,N=TH*2;
+  mPx0=tx0*256;mPy0=ty0*256;
+  mosaic=document.createElement('canvas');mosaic.width=mosaic.height=N*256;
+  const cx=mosaic.getContext('2d');cx.fillStyle=theme.ground;cx.fillRect(0,0,mosaic.width,mosaic.height);
+  imgTex=new THREE.CanvasTexture(mosaic);imgTex.keep=true;imgTex.anisotropy=8;
+  let done=0,ok=0,dirty=false;const total=N*N,stat=$('imgstat');
+  const flush=()=>{if(dirty){imgTex.needsUpdate=true;dirty=false;}};
+  imgTimer=setInterval(flush,400);
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const im=new Image();im.crossOrigin='anonymous';
+    im.onload=()=>{if(tok!==imgTok)return;cx.drawImage(im,i*256,j*256);ok++;dirty=true;fin();};
+    im.onerror=()=>{if(tok===imgTok)fin();};
+    im.src=`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${TZ}/${ty0+j}/${tx0+i}`;}
+  function fin(){done++;stat.textContent=done<total?`loading ${Math.round(done/total*100)}%`:(ok?'':'(offline: imagery unavailable)');
+    if(done===total){flush();if(ok>total*.2&&!imgReady){imgReady=true;build();}}
+    else if(ok>40&&!imgReady&&done%24===0){imgReady=true;build();}}}
+const useSat=()=>imgReady&&$('sat').checked;
+const inkC=()=>useSat()?'#ffffff':theme.ink;
+// ---------------------------------------------------------------- scenario
+let ACP=null,CTX=null,CACHE={};
+const ctxKey=()=>[st.ac,AP.icao,st.rwy,st.remF,st.hw,st.xw,st.wt,st.rx,st.bk,st.sv,JSON.stringify(PROF[st.ac]).length].join('|');
+function ctxFor(){const k=ctxKey();if(CACHE.k!==k){CACHE={k};ACP=PROF[st.ac];
+  CTX=new Ctx(ACP,AP,{runway:st.rwy,remaining_ft:curRem(),headwind_kt:st.hw,crosswind_kt:st.xw,weight_lb:st.wt,isa_dev_c:10,reaction_s:st.rx,bank_after_s:2,bank_deg:st.bk,flaps_pct:50,startle:st.sv});}
   return CTX;}
-function rowData(){ctxFor();if(!CACHE.row)CACHE.row=D.heights.map(h=>{const r=evaluate(CTX,h,{fast:true});return {h,xf:Math.round(r.xf),code:r.code};});return CACHE.row;}
-function cur(){ctxFor();const h=D.heights[st.hi];if(!CACHE.cur||CACHE.cur.h!==h){CACHE.cur=evaluate(CTX,h,{paths:true});}return CACHE.cur;}
+function rowData(){ctxFor();if(!CACHE.row)CACHE.row=HEIGHTS.map(h=>{const r=evaluate(CTX,h,{fast:true});return {h,xf:Math.round(r.xf),code:r.code};});return CACHE.row;}
+function cur(){ctxFor();const h=HEIGHTS[st.hi];if(!CACHE.cur||CACHE.cur.h!==h){CACHE.cur=evaluate(CTX,h,{paths:true});}return CACHE.cur;}
 const P=(x,y,h)=>new THREE.Vector3(x*S,h*S*vex,y*S);
-const d0=()=>D.runways[st.rwy].length-st.rem;
 
 function readTheme(){const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue(n).trim();
   theme={ink:g('--ink'),muted:g('--muted'),line:g('--line'),ok:g('--ok'),bad:g('--bad'),ret:g('--ret'),caps:g('--caps'),scene:g('--scene'),ground:g('--ground'),accent:g('--accent')};}
-
 function label(text,color,k){const c=document.createElement('canvas');c.width=512;c.height=96;const x=c.getContext('2d');
   x.font='600 40px Inter, system-ui, sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.lineWidth=9;x.strokeStyle=theme.scene;x.globalAlpha=.85;x.strokeText(text,256,48);x.globalAlpha=1;x.fillStyle=color;x.fillText(text,256,48);
   const t=new THREE.CanvasTexture(c);const m=new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true});
   const s=new THREE.Sprite(m);s.scale.set(k*5.33,k,1);s.renderOrder=5;return s;}
-
 function tube(pts,color,r){const v=[];pts.forEach(p=>{if(!v.length||v[v.length-1].distanceTo(p)>1e-3)v.push(p)});
   if(v.length<2)return null;const curve=new THREE.CatmullRomCurve3(v,false,'centripetal');
-  const g=new THREE.TubeGeometry(curve,Math.min(400,v.length*4),r,6,false);
-  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color}));}
-function dashed(pts,color){const g=new THREE.BufferGeometry().setFromPoints(pts);
-  const l=new THREE.Line(g,new THREE.LineDashedMaterial({color,dashSize:.9,gapSize:.6}));l.computeLineDistances();return l;}
-function flat(pts,color,op){const g=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p.x,0.04,p.z)));
-  return new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));}
-
-function makePlane(){const g=new THREE.Group();
-  const m=new THREE.MeshBasicMaterial({color:theme.ink});
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(400,v.length*4),r,6,false),new THREE.MeshBasicMaterial({color}));}
+function dashed(pts,color){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineDashedMaterial({color,dashSize:.9,gapSize:.6}));l.computeLineDistances();return l;}
+function flat(pts,color,op){return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p.x,0.04,p.z))),new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));}
+function makePlane(){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:theme.ink});
   const f=new THREE.Mesh(new THREE.CylinderGeometry(.16,.09,2.2,10),m);f.rotation.z=Math.PI/2;g.add(f);
   const w=new THREE.Mesh(new THREE.BoxGeometry(.45,.04,3.2),m);w.position.x=.15;g.add(w);
   const t=new THREE.Mesh(new THREE.BoxGeometry(.3,.04,1),m);t.position.x=-1;g.add(t);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(.4,.55,.04),m);fin.position.set(-1,.27,0);g.add(fin);
-  g.renderOrder=6;return g;}
-
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(.4,.55,.04),m);fin.position.set(-1,.27,0);g.add(fin);g.renderOrder=6;return g;}
 function dispose(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material){(c.material.map&&!c.material.map.keep)&&c.material.map.dispose();c.material.dispose();}});}
+const circle=(cx,cz,r,y,col,op)=>{const p=[];for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;p.push(new THREE.Vector3((cx+Math.cos(a)*r)*S,y,(cz+Math.sin(a)*r)*S));}
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(p),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op}));};
 
 function build(){
+  if(!AP||!renderer)return;
   if(dyn){scene.remove(dyn);dispose(dyn);}
-  dyn=new THREE.Group();scene.add(dyn);
-  scene.background=new THREE.Color(theme.scene);
-  const c=cur(),rw=D.runways[st.rwy],len=rw.length,d=d0(),par=rw.par_y;
-  // ground + grid every 1,000 ft
-  const x0=-d-3000,x1=st.rem+4000,zr=4500;
-  const gp=new THREE.Mesh(new THREE.PlaneGeometry((x1-x0)*S,zr*2*S),new THREE.MeshBasicMaterial({color:theme.ground}));
-  gp.rotation.x=-Math.PI/2;gp.position.set((x0+x1)/2*S,-0.02,0);dyn.add(gp);
-  const sat=useSat();
-  if(sat){const X0=-d-2500,X1=st.rem+3500,Y=4000,nx=60,ny=24,pos=[],uv=[],idx=[];
-    for(let j=0;j<=ny;j++)for(let i=0;i<=nx;i++){const x=X0+(X1-X0)*i/nx,y=-Y+2*Y*j/ny,ll=localLL(x,y);
+  dyn=new THREE.Group();scene.add(dyn);scene.background=new THREE.Color(theme.scene);
+  const c=cur(),rw=AP.runways[st.rwy],len=rw.length_ft,d=d0(),rem=curRem(),par=rw.par_y,hasPar=par!=null,sat=useSat();
+  const R=st.fence*NM,[xa,ya]=localOf(AP.arp.lat,AP.arp.lon);
+  // ground disc (the fence area), satellite-textured when available
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(R*S,96),new THREE.MeshBasicMaterial({color:theme.ground}));
+  disc.rotation.x=-Math.PI/2;disc.position.set(xa*S,-0.03,ya*S);dyn.add(disc);
+  if(sat){const nr=36,nt=120,pos=[],uv=[],idx=[];
+    for(let i=0;i<=nr;i++)for(let j=0;j<=nt;j++){const r=R*i/nr,a=j/nt*Math.PI*2,x=xa+r*Math.cos(a),y=ya+r*Math.sin(a),ll=localLL(x,y);
       pos.push(x*S,0,y*S);uv.push(Math.min(1,Math.max(0,(lonPx(ll[1])-mPx0)/mosaic.width)),Math.min(1,Math.max(0,1-(latPx(ll[0])-mPy0)/mosaic.height)));}
-    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,b=a+1,c2=a+nx+1,d2=c2+1;idx.push(a,c2,b,b,c2,d2);}
+    for(let i=0;i<nr;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+1,c2=a+nt+1,d2=c2+1;idx.push(a,c2,b,b,c2,d2);}
     const ig=new THREE.BufferGeometry();ig.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));ig.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));ig.setIndex(idx);
-    const im=new THREE.Mesh(ig,new THREE.MeshBasicMaterial({map:imgTex,side:THREE.DoubleSide}));im.position.y=0;dyn.add(im);}
-  const gv=[];for(let x=Math.ceil(x0/1000)*1000;x<=x1;x+=1000){gv.push(x*S,0,-zr*S,x*S,0,zr*S);}
-  for(let z=-zr;z<=zr;z+=1000){gv.push(x0*S,0,z*S,x1*S,0,z*S);}
-  const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.Float32BufferAttribute(gv,3));
-  if(!sat)dyn.add(new THREE.LineSegments(gg,new THREE.LineBasicMaterial({color:theme.line,transparent:true,opacity:.55})));
-  // runways (drawn wider than life so they read from altitude)
-  const rwMesh=(zc,col,op)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(len*S,.03,3),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));
-    m.position.set((-d+st.rem)/2*S,0.01,zc*S);dyn.add(m);};
-  if(sat){const ol=(zc,col)=>{const w=75,a=-d,b=st.rem,pts=[[a,-w],[b,-w],[b,w],[a,w],[a,-w]].map(q=>new THREE.Vector3(q[0]*S,.06,(q[1]+zc)*S));
-      dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col})));};
-    ol(0,'#ffd400');ol(par,'#ffffff');}else{rwMesh(0,theme.ink,.95);rwMesh(par,theme.muted,.55);}
-  const cl=[];for(let x=-d+200;x<st.rem-200;x+=400){cl.push(x*S,.05,0,(x+200)*S,.05,0);}
-  const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(cl,3));
-  if(!sat)dyn.add(new THREE.LineSegments(cg,new THREE.LineBasicMaterial({color:theme.scene})));
+    dyn.add(new THREE.Mesh(ig,new THREE.MeshBasicMaterial({map:imgTex,side:THREE.DoubleSide})));}
+  else{const gv=[];for(let x=Math.ceil((xa-R)/1000)*1000;x<=xa+R;x+=1000){gv.push(x*S,0,(ya-R)*S,x*S,0,(ya+R)*S);}
+    for(let z=Math.ceil((ya-R)/1000)*1000;z<=ya+R;z+=1000){gv.push((xa-R)*S,0,z*S,(xa+R)*S,0,z*S);}
+    const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.Float32BufferAttribute(gv,3));
+    dyn.add(new THREE.LineSegments(gg,new THREE.LineBasicMaterial({color:theme.line,transparent:true,opacity:.5})));}
+  // visualization fence: NM rings, rim and a translucent wall
+  const ringC=sat?'#ffffff':theme.muted;
+  for(let k=1;k<=st.fence;k++){dyn.add(circle(xa,ya,k*NM,.07,k===st.fence?theme.accent:ringC,k===st.fence?1:.6));
+    const l=label(`${k} NM`,k===st.fence?theme.accent:ringC,1.3);l.position.set((xa+k*NM*Math.cos(-.5))*S,1,(ya+k*NM*Math.sin(-.5))*S);dyn.add(l);}
+  const H=3000;const wall=new THREE.Mesh(new THREE.CylinderGeometry(R*S,R*S,H*S*vex,96,1,true),new THREE.MeshBasicMaterial({color:theme.accent,transparent:true,opacity:.07,side:THREE.DoubleSide,depthWrite:false}));
+  wall.position.set(xa*S,H*S*vex/2,ya*S);dyn.add(wall);
+  const rim=circle(xa,ya,R,0,theme.accent,.9);rim.position.y=H*S*vex;dyn.add(rim);
+  const al=label(`${AP.icao} · ${st.fence} NM fence`,theme.accent,1.6);al.position.set(xa*S,H*S*vex+1.5,ya*S);dyn.add(al);
+  // runways
+  const rwMesh=(zc,col,op)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(len*S,.03,3),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));m.position.set((-d+rem)/2*S,0.01,zc*S);dyn.add(m);};
+  const ol=(zc,col)=>{const w=75,a=-d,b=rem,pts=[[a,-w],[b,-w],[b,w],[a,w],[a,-w]].map(q=>new THREE.Vector3(q[0]*S,.06,(q[1]+zc)*S));
+    dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col})));};
+  if(sat){ol(0,'#ffd400');if(hasPar)ol(par,'#ffffff');}else{rwMesh(0,theme.ink,.95);if(hasPar)rwMesh(par,theme.muted,.55);}
   const lb=(t,x,z,col,k)=>{const s=label(t,col,k||1.1);s.position.set(x*S,.9,z*S);dyn.add(s);};
-  lb(st.rwy+' ▶',-d+500,-3.2,theme.ink,1.4);lb('◀ '+RECIP[st.rwy],st.rem-500,-3.2,theme.muted,1.2);
-  lb(rw.par+' (parallel)',(-d+st.rem)/2,par/100*1+(par>0?3.2:-3.2),theme.muted,1.0);
-  for(let x=0;x<=st.rem;x+=2000){if(x>0||d>0){lb(fmt(x)+' ft',x,par>0?-6.4:6.4,theme.muted,.8);}}
-  lb('brake release',0,par>0?5.2:-5.2,theme.accent,.9);
+  const side=hasPar&&par>0?-1:1;
+  lb(st.rwy+' ▶',-d+500,-3.2*side,theme.ink,1.4);lb('◀ '+rw.opp,rem-500,-3.2*side,theme.muted,1.2);
+  if(hasPar)lb(rw.par+' (parallel)',(-d+rem)/2,par/100+(par>0?3.2:-3.2),theme.muted,1.0);
+  for(let x=0;x<=rem;x+=2000){if(x>0||d>0)lb(fmt(x)+' ft',x,6.4*side,theme.muted,.8);}
+  lb('brake release',0,-5.2*side,theme.accent,.9);
   const bm=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.1,16),new THREE.MeshBasicMaterial({color:theme.accent}));bm.position.set(0,.06,0);dyn.add(bm);
-  // altitude ruler at brake release, exaggeration-aware
-  const rp=[P(0,par>0?-5:5,0),P(0,par>0?-5:5,2000)];
+  const rp=[P(0,5*side,0),P(0,5*side,2000)];
   dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rp),new THREE.LineBasicMaterial({color:theme.muted})));
-  for(let h=500;h<=2000;h+=500){const s=label(fmt(h)+' ft AGL',theme.muted,.9);s.position.copy(P(0,par>0?-5:5,h));s.position.x-=3;dyn.add(s);}
-  // climb path + failure ticks coloured by what works
-  const climb=c.climb.map(p=>P(p[1],p[2],p[3]));
-  const ct=tube(climb,inkC(),.22);if(ct)dyn.add(ct);dyn.add(flat(climb,inkC(),.35));
-  const row=rowData();
+  for(let h=500;h<=2000;h+=500){const s=label(fmt(h)+' ft AGL',theme.muted,.9);s.position.copy(P(0,5*side,h));s.position.x-=3;dyn.add(s);}
+  // climb path and failure ticks
+  const climb=c.climb.map(p=>P(p[1],p[2],p[3]));const ct=tube(climb,inkC(),.22);if(ct)dyn.add(ct);dyn.add(flat(climb,inkC(),.35));
   const tickGeo=new THREE.SphereGeometry(.34,10,8);dyn.userData.ticks=[];
-  row.forEach((k,i)=>{const m=new THREE.Mesh(tickGeo,new THREE.MeshBasicMaterial({color:CODE_COLOR[k.code]}));
-    m.position.copy(P(k.xf,0,k.h));m.userData.i=i;dyn.add(m);dyn.userData.ticks.push(m);});
-  // failure marker + drop line
-  const fp=P(c.xf,0,c.h);
-  const fm=new THREE.Mesh(new THREE.SphereGeometry(.7,16,12),new THREE.MeshBasicMaterial({color:theme.bad}));fm.position.copy(fp);dyn.add(fm);
+  rowData().forEach((k,i)=>{const m=new THREE.Mesh(tickGeo,new THREE.MeshBasicMaterial({color:CODE_COLOR[k.code]}));m.position.copy(P(k.xf,0,k.h));m.userData.i=i;dyn.add(m);dyn.userData.ticks.push(m);});
+  const fp=P(c.xf,0,c.h),fm=new THREE.Mesh(new THREE.SphereGeometry(.7,16,12),new THREE.MeshBasicMaterial({color:theme.bad}));fm.position.copy(fp);dyn.add(fm);
   dyn.add(dashed([fp,new THREE.Vector3(fp.x,0,0)],theme.bad));
   const fl=label(`engine out · ${fmt(c.h)} ft`,theme.bad,1.1);fl.position.set(fp.x,fp.y+2.2,fp.z);dyn.add(fl);
-  // options
-  const opts=[['straight',c.straight,theme.ok,st.show.straight],['ret',c.ret_dep,theme.ret,st.show.ret],
-              ['par',c.ret_par,theme.ret,st.show.par],['caps',c.caps,theme.caps,st.show.caps]];
-  opts.forEach(([key,o,col,on])=>{
+  [['straight',c.straight,theme.ok,st.show.straight],['ret',c.ret_dep,theme.ret,st.show.ret],['par',c.ret_par,theme.ret,st.show.par],['caps',c.caps,theme.caps,st.show.caps]].forEach(([key,o,col,on])=>{
     if(!on||!o||!o.pts||o.pts.length<2)return;
     const pts=o.pts.map(p=>P(p[1],p[2],p[3]));
-    if(o.ok){const t=tube(pts,col,.2);if(t)dyn.add(t);}else{dyn.add(dashed(pts,key==='par'?theme.ret:col));}
-    dyn.add(flat(pts,col,.3));
-    const end=pts[pts.length-1];
-    const mk=new THREE.Mesh(new THREE.RingGeometry(.5,.8,24),new THREE.MeshBasicMaterial({color:o.ok?col:theme.bad,side:THREE.DoubleSide}));
-    mk.rotation.x=-Math.PI/2;mk.position.set(end.x,.08,end.z);dyn.add(mk);
+    if(o.ok){const t=tube(pts,col,.2);if(t)dyn.add(t);}else dyn.add(dashed(pts,col));
+    dyn.add(flat(pts,col,.3));const end=pts[pts.length-1];
+    const mk=new THREE.Mesh(new THREE.RingGeometry(.5,.8,24),new THREE.MeshBasicMaterial({color:o.ok?col:theme.bad,side:THREE.DoubleSide}));mk.rotation.x=-Math.PI/2;mk.position.set(end.x,.08,end.z);dyn.add(mk);
     if(!o.ok){const x=label('✕',theme.bad,1.2);x.position.set(end.x,1.2,end.z);dyn.add(x);}
-    if(key==='caps'){const dep=o.pts.findIndex(p=>p[0]>=CTX.react+(AC.caps?AC.caps.decision_time_after_recognition_s:0)-1e-6);
+    if(key==='caps'){const dep=o.pts.findIndex(p=>p[0]>=CTX.react+(ACP.caps?ACP.caps.decision_time_after_recognition_s:0)-1e-6);
       if(dep>=0){const q=P(o.pts[dep][1],o.pts[dep][2],o.pts[dep][3]);const cp=new THREE.Mesh(new THREE.OctahedronGeometry(.7),new THREE.MeshBasicMaterial({color:col}));cp.position.copy(q);dyn.add(cp);
-        const t=label(`CAPS · ${fmt(o.hd)} ft`,col,1);t.position.set(q.x,q.y+1.8,q.z);dyn.add(t);}}
-  });
+        const t=label(`CAPS · ${fmt(o.hd)} ft`,col,1);t.position.set(q.x,q.y+1.8,q.z);dyn.add(t);}}});
   placePlane(0);
 }
-
 function pathFor(mode){const c=cur();let pts=c.climb.slice();
-  if(mode&&mode!=='climb'){const o={straight:c.straight,ret:c.ret_dep,par:c.ret_par,caps:c.caps}[mode];
-    if(o&&o.pts)o.pts.forEach((p,i)=>{if(i>0)pts.push([p[0]+c.tc,p[1],p[2],p[3]]);});}
+  if(mode&&mode!=='climb'){const o={straight:c.straight,ret:c.ret_dep,par:c.ret_par,caps:c.caps}[mode];if(o&&o.pts)o.pts.forEach((p,i)=>{if(i>0)pts.push([p[0]+c.tc,p[1],p[2],p[3]]);});}
   return pts;}
-function sample(pts,t){if(t<=pts[0][0])return {i:0,f:0};
-  for(let i=1;i<pts.length;i++){if(t<=pts[i][0]){const a=pts[i-1],b=pts[i];return {i:i-1,f:(t-a[0])/Math.max(b[0]-a[0],1e-6)};}}
-  return {i:pts.length-2,f:1};}
+function sample(pts,t){if(t<=pts[0][0])return {i:0,f:0};for(let i=1;i<pts.length;i++){if(t<=pts[i][0]){const a=pts[i-1],b=pts[i];return {i:i-1,f:(t-a[0])/Math.max(b[0]-a[0],1e-6)};}}return {i:pts.length-2,f:1};}
 function placePlane(t){
   if(!plane){plane=makePlane();scene.add(plane);}
   plane.traverse(o=>{if(o.material)o.material.color.set(inkC())});
-  const pts=anim?anim.pts:pathFor(null);
-  const tt=anim?t:cur().tc;
-  const s=sample(pts,tt),a=pts[s.i],b=pts[s.i+1];
-  const pa=P(a[1],a[2],a[3]),pb=P(b[1],b[2],b[3]);
-  const pos=pa.clone().lerp(pb,s.f);plane.position.copy(pos);
+  const pts=anim?anim.pts:pathFor(null),tt=anim?t:cur().tc,s=sample(pts,tt),a=pts[s.i],b=pts[s.i+1];
+  const pa=P(a[1],a[2],a[3]),pb=P(b[1],b[2],b[3]),pos=pa.clone().lerp(pb,s.f);plane.position.copy(pos);
   const dir=pb.clone().sub(pa);if(dir.lengthSq()>1e-8){dir.normalize();plane.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);}
-  const hh=a[3]+(b[3]-a[3])*s.f;
-  $('readout').textContent=`t ${tt.toFixed(1)} s · AGL ${fmt(Math.max(0,hh))} ft · x ${fmt(a[1]+(b[1]-a[1])*s.f)} ft`;
-  return pos;}
-
-function play(mode){const pts=pathFor(mode);if(pts.length<2)return;
-  anim={mode,pts,t:0,T:pts[pts.length-1][0],on:true};
-  if(mode==='climb')anim.T=cur().tc;}
-
-function setView(v){st.view=v;const c=cur(),d=d0();
-  const cx=(-d+st.rem)/2*S,L=(d+st.rem)*S;
-  controls.target.set(cx,2,0);
-  const pos={iso:[cx-L*.34,L*.34,L*.55],top:[cx,L*.62,.01],side:[cx,L*.13,L*.78]}[v]||[cx-L*.34,L*.34,L*.55];
+  const hh=a[3]+(b[3]-a[3])*s.f;$('readout').textContent=`t ${tt.toFixed(1)} s · AGL ${fmt(Math.max(0,hh))} ft · x ${fmt(a[1]+(b[1]-a[1])*s.f)} ft`;return pos;}
+function play(mode){const pts=pathFor(mode);if(pts.length<2)return;anim={mode,pts,t:0,T:pts[pts.length-1][0],on:true};if(mode==='climb')anim.T=cur().tc;}
+function setView(v){st.view=v;const d=d0(),rem=curRem(),cx=(-d+rem)/2*S,L=(d+rem)*S,[xa,ya]=localOf(AP.arp.lat,AP.arp.lon),F=st.fence*NM*S;
+  const T={iso:[cx,2,0],top:[cx,2,0],side:[cx,2,0],fence:[xa*S,0,ya*S]}[v]||[cx,2,0];controls.target.set(T[0],T[1],T[2]);
+  const pos={iso:[cx-L*.34,L*.34,L*.55],top:[cx,L*.62,.01],side:[cx,L*.13,L*.78],fence:[xa*S-F*.7,F*1.3,ya*S+F*1.2]}[v]||[cx-L*.34,L*.34,L*.55];
   camera.position.set(pos[0],pos[1],pos[2]);controls.update();
   document.querySelectorAll('#views [data-v]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));}
-
 function panels(){
-  const c=cur(),rw=D.runways[st.rwy];
-  $('hv').textContent=fmt(c.h);
-  $('hx').textContent=`${fmt(c.xf)} ft down the runway`;
-  const left=st.rem-c.xf;
-  $('hleft').textContent=left>=0?`${fmt(left)} ft of pavement still ahead`:`${fmt(-left)} ft beyond the runway end`;
-  $('alt').value=st.hi;
-  document.querySelectorAll('#strip button').forEach((b,i)=>b.setAttribute('aria-current',String(i===st.hi)));
-  $('beyond').innerHTML=`<b>Beyond ${st.rwy} departure end:</b> ${rw.notes}`;
-  const works=[];if(c.straight.ok)works.push('land straight ahead');if(c.ret_dep&&c.ret_dep.ok)works.push('turn back to '+st.rwy+' (reciprocal)');
-  if(c.caps.ok)works.push('pull CAPS');
+  const c=cur(),rw=AP.runways[st.rwy],rem=curRem();
+  $('hv').textContent=fmt(c.h);$('hx').textContent=`${fmt(c.xf)} ft down the runway`;
+  const left=rem-c.xf;$('hleft').textContent=left>=0?`${fmt(left)} ft of pavement still ahead`:`${fmt(-left)} ft beyond the runway end`;
+  $('alt').value=st.hi;document.querySelectorAll('#strip button').forEach((b,i)=>b.setAttribute('aria-current',String(i===st.hi)));
+  $('apinfo').textContent=`${AP.icao} · field elevation ≈ ${fmt(AP.elevation_ft)} ft · ${st.rwy} is ${fmt(rw.length_ft)} ft, heading ${Math.round(rw.hdg)}° true${rw.par?`, parallel ${rw.par} ${fmt(Math.abs(rw.par_y))} ft ${rw.par_y>0?'right':'left'}`:', no parallel runway'}`;
+  const works=[];if(c.straight.ok)works.push('land straight ahead');if(c.ret_dep&&c.ret_dep.ok)works.push('turn back to '+st.rwy+' (reciprocal)');if(c.caps.ok)works.push('pull CAPS');
   const v=$('verdict');
   if(works.length){v.innerHTML=`${CODE_TEXT[c.code]}<span>You can ${works.join(', or ')}.${(c.ret_par&&c.ret_par.ok&&!(c.ret_dep&&c.ret_dep.ok))?' The parallel runway is also reachable.':''}</span>`;v.style.borderColor=CODE_COLOR[c.code];}
-  else{v.innerHTML=`No good option<span>Too low for CAPS, no room to land ahead, no altitude to turn back${(c.ret_par&&c.ret_par.ok)?' (the parallel runway is reachable)':''}.</span>`;v.style.borderColor=CODE_COLOR[0];}
-  const s=c.straight,r=c.ret_dep,pr=c.ret_par,cp=c.caps,mn=AC.caps?AC.caps.min_agl_level_ft:0;
-  const ts=s.ok?`Touches down at ${fmt(s.td)} ft; ${fmt(s.left)} ft of runway left after the ${fmt(s.roll)} ft roll.`:
-    (s.left<0?`Touches down at ${fmt(s.td)} ft and needs ${fmt(-s.left)} ft more pavement than remains.`:'No usable landing ahead.');
-  const retTxt=(o,nm)=>!o?'Not enough room to turn back and land.':
-    o.ok?`Lines up with ${fmt(o.margin)} ft of altitude to spare over the 50 ft flare margin.`:
-    (o.margin===null?'The turn cannot be lined up with the runway.':`Comes up about ${fmt(-o.margin*1)} ft short of altitude.`);
-  const capsTxt=cp.ok?`Pulled at ${fmt(cp.hd)} ft AGL. Canopy touches down ${fmt(cp.land[0])} ft down the runway line, ${fmt(Math.abs(cp.drift))} ft of wind drift, ${cp.onap?'on airport property':'off airport'}.`:
-    (cp.hd>0?`Handle pulled at ${fmt(cp.hd)} ft AGL, below the ${fmt(mn)} ft needed for full inflation.`:'Already on the ground before CAPS can be pulled.');
-  const noRoll=(!r)&&!(c.xf>0);
-  const html=[['straight','Straight ahead',s.ok,ts,'var(--ok)','straight'],
-    ['ret','Turn back, '+st.rwy+' reciprocal',!!(r&&r.ok),r?retTxt(r):'Cannot land back on the departure runway: not enough runway behind the aircraft for a tail-wind roll-out, or still too low.','var(--ret)','ret'],
-    ['par','Turn to parallel '+rw.par,!!(pr&&pr.ok),pr?retTxt(pr):'Not available from this point.','var(--ret)','par'],
-    ['caps','CAPS parachute',cp.ok,cp.available?capsTxt:'This aircraft has no airframe parachute.','var(--caps)','caps']].map(([k,t,ok,tx,col,key])=>
-    `<div class="opt"><span class="sw" style="background:${col}"></span><b>${t}</b><span class="chip ${ok?'ok':'no'}">${ok?'works':(key==='caps'&&!cp.available?'n/a':'no')}</span><p>${tx}</p>
+  else{v.innerHTML=`No good option<span>${c.caps.available?'Too low for CAPS, no':'No'} room to land ahead, no altitude to turn back${(c.ret_par&&c.ret_par.ok)?' (the parallel runway is reachable)':''}.</span>`;v.style.borderColor=CODE_COLOR[0];}
+  const s=c.straight,r=c.ret_dep,pr=c.ret_par,cp=c.caps,mn=ACP.caps?ACP.caps.min_agl_level_ft:0;
+  const ts=s.ok?`Touches down at ${fmt(s.td)} ft; ${fmt(s.left)} ft of runway left after the ${fmt(s.roll)} ft roll.`:(s.left<0?`Touches down at ${fmt(s.td)} ft and needs ${fmt(-s.left)} ft more pavement than remains.`:'No usable landing ahead.');
+  const retTxt=o=>!o?'Not enough room to turn back and land.':o.ok?`Lines up with ${fmt(o.margin)} ft of altitude to spare over the 50 ft flare margin.`:(o.margin===null?'The turn cannot be lined up with the runway.':`Comes up about ${fmt(-o.margin)} ft short of altitude.`);
+  const capsTxt=cp.ok?`Pulled at ${fmt(cp.hd)} ft AGL. Canopy touches down ${fmt(cp.land[0])} ft down the runway line, ${fmt(Math.abs(cp.drift))} ft of wind drift, ${cp.onap?'on airport property':'off airport'}.`:(cp.hd>0?`Handle pulled at ${fmt(cp.hd)} ft AGL, below the ${fmt(mn)} ft minimum you entered.`:'Already on the ground before CAPS can be pulled.');
+  const rows=[['straight','Straight ahead',s.ok,ts,'var(--ok)'],
+    ['ret','Turn back, '+st.rwy+' reciprocal',!!(r&&r.ok),r?retTxt(r):'Cannot land back on the departure runway: not enough runway behind the aircraft for the roll-out, or still too low.','var(--ret)'],
+    ...(rw.par?[['par','Turn to parallel '+rw.par,!!(pr&&pr.ok),pr?retTxt(pr):'Not available from this point.','var(--ret)']]:[]),
+    ['caps','CAPS parachute',cp.ok,cp.available?capsTxt:'This aircraft profile has no airframe parachute.','var(--caps)']];
+  $('opts').innerHTML=rows.map(([key,t,ok,tx,col])=>`<div class="opt"><span class="sw" style="background:${col}"></span><b>${t}</b><span class="chip ${ok?'ok':'no'}">${ok?'works':(key==='caps'&&!cp.available?'n/a':'no')}</span><p>${tx}</p>
      <div class="acts"><button data-play="${key}" ${(key==='ret'&&!r)||(key==='par'&&!pr)||(key==='caps'&&!cp.pts.length)?'disabled':''}>▶ Fly it</button>
      <label><input type="checkbox" data-show="${key}" ${st.show[key]?'checked':''}> show path</label></div></div>`).join('');
-  $('opts').innerHTML=html;
 }
-
-function strip(){const n=D.heights.length,row=rowData();
-  const el=$('strip');el.style.gridTemplateColumns=`repeat(${n},1fr)`;
+function strip(){const n=HEIGHTS.length,row=rowData(),el=$('strip');el.style.gridTemplateColumns=`repeat(${n},1fr)`;
   el.innerHTML=row.map((k,i)=>`<button style="background:${CODE_COLOR[k.code]}" data-i="${i}" title="${fmt(k.h)} ft AGL: ${CODE_TEXT[k.code]}" aria-label="${fmt(k.h)} feet: ${CODE_TEXT[k.code]}"></button>`).join('');
-  $('alt').max=n-1;
-  $('scale').innerHTML=[D.heights[0],500,1000,1500,D.heights[n-1]].map(h=>`<span>${fmt(h)}</span>`).join('');
-}
+  $('alt').max=n-1;$('scale').innerHTML=[HEIGHTS[0],500,1000,1500,HEIGHTS[n-1]].map(h=>`<span>${fmt(h)}</span>`).join('');}
 function refresh(full){if(full)strip();panels();build();}
-
+// ---------------------------------------------------------------- UI wiring
+function fillRunways(){const ids=Object.keys(AP.runways).sort((a,b)=>parseInt(a)-parseInt(b)||a.localeCompare(b));
+  if(!AP.runways[st.rwy])st.rwy=AP.runways['30R']?'30R':ids[0];
+  $('rwy').innerHTML=ids.map(r=>`<button data-r="${r}" aria-pressed="${r===st.rwy}">${r}</button>`).join('');fillRem();}
+function fillRem(){const L=AP.runways[st.rwy].length_ft;$('rem').innerHTML=[1,.75,.55,.35].map(f=>`<option value="${f}">${f===1?'Full length · ':''}${fmt(Math.round(L*f/100)*100)} ft left</option>`).join('');$('rem').value=st.remF;}
+function acUI(){const a=PROF[st.ac];$('wt').min=Math.round(a.max_weight_lb*.7);$('wt').max=a.max_weight_lb;$('wt').step=10;st.wt=Math.min(Math.max(st.wt,+$('wt').min),a.max_weight_lb);$('wt').value=st.wt;
+  $('wtv').textContent=fmt(st.wt)+' lb';$('rxv').textContent=st.rx+' s';$('bkv').textContent=st.bk+'°';$('rx').value=st.rx;$('bk').value=st.bk;$('sv').value=st.sv;
+  $('svv').textContent=['none','mild','moderate','strong','severe'][st.sv*4]+(st.sv?` (+${(4*st.sv).toFixed(0)} s, +${(8*st.sv).toFixed(0)} kt)`:'');
+  $('hwv').textContent=st.hw>=0?`${st.hw} kt head`:`${-st.hw} kt tail`;$('xwv').textContent=st.xw===0?'none':(st.xw>0?`${st.xw} kt from right`:`${-st.xw} kt from left`);$('fencev').textContent=st.fence+' NM';
+  $('acnote').textContent=(a._sources?'Numbers read from the POH (see page references in the profile JSON). ':'Numbers entered by you. ')+(a.caps?`CAPS pulled ${a.caps.decision_time_after_recognition_s} s after you react; your minimum is ${a.caps.min_agl_level_ft} ft AGL.`:'No airframe parachute.');
+  $('hudsub').textContent=`${a.name} · ${AP?AP.icao:''} · drag to orbit, scroll to zoom`;
+  $('assump').textContent=`${a.name}, ${fmt(st.wt)} lb, ISA+10 °C, flaps 50 %, ${st.rx} s to react${st.sv?` plus ${(4*st.sv).toFixed(0)} s startle delay and a ${(8*st.sv).toFixed(0)} kt speed error`:''}, then 2 s before banking, ${st.bk}° bank, ${a.glide.glide_ratio_ref}:1 glide at ${a.glide.vbg_kias_ref} KIAS.`;}
+function fillAcSelect(){$('ac').innerHTML=Object.keys(PROF).map(i=>`<option value="${i}">${PROF[i].name}${CFG.aircraft[i]?'':' (saved)'}</option>`).join('');$('ac').value=st.ac;}
+function setAirport(ap){AP=ap;CACHE={};anim=null;fillRunways();loadImagery();acUI();refresh(true);setView(st.view);}
+async function goAirport(){const id=$('icao').value.trim().toUpperCase();if(!id)return;const info=$('apinfo');info.textContent='Loading '+id+'…';
+  try{const ap=await getAirport(id);if(!ap||!ap.runways||!Object.keys(ap.runways).length){info.textContent=`No runways with coordinates found for "${id}". Use the ICAO or FAA identifier.`;return;}setAirport(ap);}
+  catch(e){info.textContent='Could not load the airport database ('+e.message+'). Check your connection.';}}
 function init(){
   readTheme();
   const cv=$('gl');renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
-  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,1,.1,2000);
-  controls=new THREE.OrbitControls(camera,cv);controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.495;
-  // controls
-  $('rwy').innerHTML=Object.keys(D.runways).sort().map(r=>`<button data-r="${r}" aria-pressed="${r===st.rwy}">${r}</button>`).join('');
-  const fillWind=()=>{$('wind').innerHTML=D.winds[st.rwy].map((w,i)=>`<option value="${i}">${w.name} (${w.hw>=0?w.hw+' kt head':-w.hw+' kt tail'})</option>`).join('');$('wind').value=st.wind;};
-  $('rem').innerHTML=D.remaining.map(r=>`<option value="${r}">${r===D.remaining[0]?'Full length · ':''}${fmt(r)} ft left</option>`).join('');
-  fillWind();
-  $('ac').innerHTML=CFG.order.map(i=>`<option value="${i}">${CFG.aircraft[i].name}</option>`).join('');$('ac').value=st.ac;
-  const acUI=()=>{const a=CFG.aircraft[st.ac];$('wt').min=Math.round(a.max_weight_lb*.7);$('wt').max=a.max_weight_lb;$('wt').step=10;$('wt').value=st.wt;
-    $('wtv').textContent=fmt(st.wt)+' lb';$('rxv').textContent=st.rx+' s';$('bkv').textContent=st.bk+'°';$('rx').value=st.rx;$('bk').value=st.bk;$('sv').value=st.sv;$('svv').textContent=['none','mild','moderate','strong','severe'][st.sv*4]+(st.sv?` (+${(4*st.sv).toFixed(0)} s, +${(8*st.sv).toFixed(0)} kt)`:'');
-    $('acnote').textContent=a.caps?`Has CAPS: pulled ${a.caps.decision_time_after_recognition_s} s after you react; needs ${a.caps.min_agl_level_ft} ft AGL.`:'No airframe parachute: only straight-ahead and turn-back apply.';
-    $('hudsub').textContent=`${a.name} · KSJC · drag to orbit, scroll to zoom`;
-    $('assump').textContent=`${a.name}, ${fmt(st.wt)} lb, ISA+10 °C, flaps 50 %, ${st.rx} s to react${st.sv?` plus ${(4*st.sv).toFixed(0)} s startle delay and a ${(8*st.sv).toFixed(0)} kt speed error`:''}, then 2 s before banking, ${st.bk}° bank, ${a.glide.glide_ratio_ref}:1 glide with prop windmilling.`;};
-  $('ac').onchange=e=>{st.ac=e.target.value;st.wt=Math.round(CFG.aircraft[st.ac].max_weight_lb*.94/10)*10;anim=null;acUI();refresh(true);};
-  [['wt','wt',1],['rx','rx',1],['bk','bk',1],['sv','sv',1]].forEach(([id,k])=>{$(id).oninput=e=>{st[k]=+e.target.value;anim=null;acUI();refresh(true);};});
-  st.wt=Math.round(CFG.aircraft[st.ac].max_weight_lb*.94/10)*10;acUI();
-  $('rwy').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.rwy=b.dataset.r;st.wind=0;anim=null;
-    document.querySelectorAll('#rwy button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fillWind();refresh(true);setView(st.view);};
-  $('wind').onchange=e=>{st.wind=+e.target.value;anim=null;refresh(true);};
-  $('rem').onchange=e=>{st.rem=+e.target.value;anim=null;refresh(true);setView(st.view);};
+  scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,1,.1,6000);
+  controls=new THREE.OrbitControls(camera,cv);controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.495;controls.maxDistance=900;
+  loadSaved();fillAcSelect();fillForm(PROF[st.ac]);st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;
+  $('hw').value=st.hw;$('xw').value=st.xw;
+  $('icaogo').onclick=goAirport;$('icao').onkeydown=e=>{if(e.key==='Enter')goAirport();};
+  $('ac').onchange=e=>{st.ac=e.target.value;st.wt=Math.round(PROF[st.ac].max_weight_lb*.94/10)*10;fillForm(PROF[st.ac]);anim=null;acUI();refresh(true);};
+  [['wt','wt'],['rx','rx'],['bk','bk'],['sv','sv'],['hw','hw'],['xw','xw']].forEach(([id,k])=>{$(id).oninput=e=>{st[k]=+e.target.value;anim=null;acUI();refresh(true);};});
+  $('fence').oninput=e=>{st.fence=+e.target.value;acUI();build();if(st.view==='fence')setView('fence');};
+  $('rwy').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.rwy=b.dataset.r;anim=null;
+    document.querySelectorAll('#rwy button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fillRem();CACHE={};loadImagery();refresh(true);setView(st.view);};
+  $('rem').onchange=e=>{st.remF=+e.target.value;anim=null;refresh(true);setView(st.view);};
   $('alt').oninput=e=>{st.hi=+e.target.value;anim=null;refresh(false);};
   $('strip').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.hi=+b.dataset.i;anim=null;refresh(false);};
   $('opts').onclick=e=>{const b=e.target.closest('button[data-play]');if(b)play(b.dataset.play);};
   $('opts').onchange=e=>{const k=e.target.dataset.show;if(k){st.show[k]=e.target.checked;build();}};
   $('views').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-    if(b.dataset.v)setView(b.dataset.v);
-    else if(b.id==='chase'){st.chase=!st.chase;b.setAttribute('aria-pressed',String(st.chase));}
-    else if(b.id==='climb')play('climb');};
-  $('vex').oninput=e=>{vex=+e.target.value;build();};
-  $('sat').onchange=()=>build();
-  loadImagery();
-  // pick failure height by clicking a tick in 3D
+    if(b.dataset.v)setView(b.dataset.v);else if(b.id==='chase'){st.chase=!st.chase;b.setAttribute('aria-pressed',String(st.chase));}else if(b.id==='climb')play('climb');};
+  $('vex').oninput=e=>{vex=+e.target.value;build();};$('sat').onchange=()=>build();
+  // POH form
+  const msg=t=>{$('f_msg').textContent=t;};
+  $('f_nm').oninput=()=>{const nm=parseFloat($('f_nm').value);if(nm>0)$('f_ld').value=(nm*NM/1000).toFixed(2);};
+  $('f_apply').onclick=()=>{const r=readForm();if(r.err){msg(r.err);return;}PROF.unsaved=r.p;st.ac='unsaved';st.wt=Math.round(r.p.max_weight_lb*.94/10)*10;fillAcSelect();anim=null;acUI();refresh(true);msg('Using these numbers for this session.');};
+  $('f_save').onclick=()=>{const r=readForm();if(r.err){msg(r.err);return;}const id='u_'+r.p.name.toLowerCase().replace(/[^a-z0-9]+/g,'_');r.p.id=id;PROF[id]=r.p;delete PROF.unsaved;st.ac=id;st.wt=Math.round(r.p.max_weight_lb*.94/10)*10;
+    fillAcSelect();anim=null;acUI();refresh(true);msg(saveSaved()?'Saved in this browser.':'Could not save (browser storage blocked); the profile is still in use for this session.');};
+  $('f_export').onclick=()=>{const r=readForm();if(r.err){msg(r.err);return;}const t=$('f_json');t.value=JSON.stringify(r.p,null,1);t.hidden=false;t.select();msg('Copy this JSON, or save it as a .json file to re-import later or to use with the Python tools.');};
+  $('f_import').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const p=JSON.parse(rd.result);if(!p.takeoff||!p.glide||!p.wing_area_ft2)throw new Error('not a profile');
+      p.id='unsaved';PROF.unsaved=p;st.ac='unsaved';fillForm(p);st.wt=Math.round(p.max_weight_lb*.94/10)*10;fillAcSelect();anim=null;acUI();refresh(true);msg('Imported.');}catch(err){msg('Could not read that file: '+err.message);}};rd.readAsText(f);};
   const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let down=null;
   cv.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
   cv.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;
     const r=cv.getBoundingClientRect();mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
-    ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects(dyn.userData.ticks)[0];
-    if(hit){st.hi=hit.object.userData.i;anim=null;refresh(false);}});
-  // codes legend
+    ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects(dyn.userData.ticks)[0];if(hit){st.hi=hit.object.userData.i;anim=null;refresh(false);}});
   $('codes').innerHTML=[0,1,2,3,4,5,6,7].map(k=>`<span style="--c:${CODE_COLOR[k]}">${CODE_TEXT[k]}</span>`).join('');
-  new ResizeObserver(()=>{const s=$('stage');const w=s.clientWidth,h=s.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}).observe($('stage'));
-  const rt=()=>{readTheme();build();};
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rt);
+  new ResizeObserver(()=>{const s=$('stage'),w=s.clientWidth,h=s.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}).observe($('stage'));
+  const rt=()=>{readTheme();build();};matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rt);
   new MutationObserver(rt).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
-  refresh(true);setView('iso');
+  setAirport(CFG.airport_fallback);
   let last=performance.now();
-  (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;
-    const spd=+$('spd').value;
+  (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;const spd=+$('spd').value;
     if(anim&&anim.on){anim.t+=dt*[0,.5,1,2,4,8,12,20,30][spd];if(anim.t>=anim.T){anim.t=anim.T;anim.on=false;}
-      const pos=placePlane(anim.t);
-      if(st.chase){const dlt=pos.clone().sub(controls.target).multiplyScalar(.12);controls.target.add(dlt);camera.position.add(dlt);}}
+      const pos=placePlane(anim.t);if(st.chase){const dl=pos.clone().sub(controls.target).multiplyScalar(.12);controls.target.add(dl);camera.position.add(dl);}}
     controls.update();renderer.render(scene,camera);})(last);
 }
-Promise.resolve((()=>{const ap=CFG.airport,d={runways:{},winds:{},remaining:ap.departure_points.remaining_ft,geo:ap.geo,arp:ap.arp,heights:[]};
-  for(const k in ap.runways){const r=ap.runways[k];d.runways[k]={length:r.length_ft,par:r.parallel,par_y:r.parallel_side*ap.parallel_spacing_ft,notes:r.ahead_notes};}
-  for(const k in ap.default_wind_scenarios)d.winds[k]=ap.default_wind_scenarios[k].map(w=>({name:w.name,hw:w.headwind_kt,xw:w.crosswind_kt}));
-  for(let h=50;h<=1800;h+=50)d.heights.push(h);return d;})()).then(d=>{D=d;
-  st.hi=Math.max(0,D.heights.indexOf(800));init();
-}).catch(e=>{document.getElementById('hudsub').textContent='Could not load trajectory data: '+e;});
+try{st.hi=Math.max(0,HEIGHTS.indexOf(800));init();}catch(e){document.getElementById('hudsub').textContent='Could not start: '+e;}
 })();
 </script>
 </body></html>

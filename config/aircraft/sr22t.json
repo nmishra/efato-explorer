@@ -1,25 +1,25 @@
 {
- "_note": "APPROXIMATE values -- verify against your POH/AFM.",
+ "_note": "Cirrus SR22T G5 -- every number below is read from the Pilot's Operating Handbook P/N 13772-005 (3600 lb unless stated). See _sources. Items under _model are modelling assumptions, NOT POH data.",
  "id": "sr22t",
- "name": "Cirrus SR22T",
+ "name": "Cirrus SR22T (G5 POH)",
  "max_weight_lb": 3600,
  "ref_weight_lb": 3600,
  "wing_area_ft2": 144.9,
  "takeoff": {
-  "vr_kias": 78,
-  "vy_kias": 96,
-  "roc_ref_fpm": 1150,
-  "ground_roll_ref_ft": 1450,
-  "ground_roll_weight_exp": 1.8,
-  "ground_roll_sigma_exp": 0.8
+  "vr_kias": 80,
+  "vy_kias": 91,
+  "roc_ref_fpm": 1186,
+  "ground_roll_ref_ft": 1517,
+  "ground_roll_weight_exp": 4.7,
+  "ground_roll_sigma_exp": 0.98
  },
  "glide": {
-  "vbg_kias_ref": 88,
-  "glide_ratio_ref": 9.0
+  "vbg_kias_ref": 92,
+  "glide_ratio_ref": 8.6
  },
  "stall_kias_ref": {
   "0": 74,
-  "50": 69,
+  "50": 70,
   "100": 64
  },
  "flap_cd0_delta": {
@@ -28,12 +28,12 @@
   "100": 0.04
  },
  "landing": {
-  "roll_ref_ft": 1700,
-  "touchdown_kias": 70,
+  "roll_ref_ft": 1178,
+  "touchdown_kias": 79,
   "roll_margin_factor": 1.25
  },
  "caps": {
-  "max_deploy_kias": 133,
+  "max_deploy_kias": 140,
   "min_agl_level_ft": 600,
   "altitude_loss_to_inflate_ft": 400,
   "descent_rate_fpm": 1700,
@@ -48,5 +48,19 @@
   "gamma_time_const_s": 1.0,
   "arrival_margin_req_ft": 50,
   "max_align_err_deg": 30
- }
+ },
+ "_sources": {
+  "wing_area": "Sec 1: Wing Area = 144.9 sq ft",
+  "vr": "Sec 4 Airspeeds for Normal Operation: Takeoff rotation, normal, flaps 50% = 80 KIAS",
+  "vy_roc": "Sec 5 Takeoff Climb Gradient, flaps 50%, 3600 lb, SL, ISA: 91 KIAS, 782 ft/NM -> 782*91/60 = 1186 fpm",
+  "ground_roll": "Sec 5 Takeoff Distance 3600 lb, flaps 50%, SL ISA ground roll 1517 ft (2900 lb: 544 ft -> weight exponent ln(1517/544)/ln(3600/2900)=4.7; 4000 ft ISA: 1856 ft -> density exponent 0.98)",
+  "glide": "Sec 3 Maximum Glide: best glide 92 KIAS at 3600 lb, max glide ratio ~8.6:1, prop windmilling, flaps up",
+  "stall": "Sec 5 Stall Speeds 3600 lb, 0 deg bank, most fwd CG, KIAS: flaps 0% 74, flaps 50% 70, flaps 100% 64",
+  "landing": "Sec 5 Landing Distance 3600 lb, flaps 100%, SL ISA ground roll 1178 ft; speed over 50 ft 79 KIAS (VREF used as touchdown speed)",
+  "caps_speed": "Sec 3 CAPS Deployment: max demonstrated deployment speed 140 KIAS",
+  "caps_loss": "Sec 10 Deployment Altitude: no minimum altitude set; level-flight altitude loss demonstrated < 400 ft; POH advises >= 2000 ft AGL if circumstances permit",
+  "caps_descent": "Sec 3: descent rate expected < 1700 fpm",
+  "caps_min_agl_level_ft": "NOT a POH value: owner-specified planning minimum (600 ft AGL)"
+ },
+ "_model": "flap_cd0_delta, landing roll_margin_factor, CAPS inflation_time_s / forward_travel_ft / decision_time, and all 'pilot' entries are modelling assumptions."
 }
