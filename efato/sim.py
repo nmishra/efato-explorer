@@ -71,7 +71,7 @@ class Ctx:
 
     def __init__(self, ac, apt, sc: Scenario):
         self.ac, self.apt, self.sc = ac, apt, sc
-        self.S = ac["wing_area_ft2"]
+        self.S = ac.get("wing_area_ft2") or 150.0   # cancels out once L/D and stall speed are given
         self.W = sc.weight_lb
         Wref = ac["ref_weight_lb"]
         self.Wref = Wref

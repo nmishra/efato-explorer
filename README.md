@@ -13,7 +13,7 @@ Open `docs/index.html` in any browser, or use the GitHub Pages site. It runs the
 - **Airport:** type any ICAO/FAA identifier. Runways, headings, lengths, elevation and parallel runways are read live from the
   OurAirports database (public domain, FAA-derived). KSJC is bundled so the page works offline.
 - **Visualization fence:** a 1-4 NM (default 3) ring and wall around the airport over live satellite imagery (Esri World Imagery).
-- **Aircraft:** the built-in SR22T (G5 POH), or **Enter / edit POH data** to type your own airplane's numbers, save them in the
+- **Aircraft:** built-in profiles read from POHs (SR22T G5, Cessna 172S, Cessna 182T, Epic E1000 GX; see `_sources` in each file), or **Enter / edit POH data** to type your own airplane's numbers, save them in the
   browser, export or import them as JSON. Exported JSON works with the Python tools too.
 - **Pilot and conditions:** weight, reaction time, startle (adds delay and speed error), bank, headwind, crosswind, departure point,
   failure height. See the straight-ahead, turn-back and CAPS paths overlaid, and fly each one.
@@ -27,7 +27,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python run_montecarlo.py      # option probabilities vs height
 python3 make_viz.py                     # rebuild docs/index.html after changing configs
 ```
-Other aircraft: copy `config/aircraft/TEMPLATE.json.txt` to `config/aircraft/<id>.json`, fill every null from your POH, then
+Wing area is optional (it cancels once L/D and stall speed are given). Other aircraft: copy `config/aircraft/TEMPLATE.json.txt` to `config/aircraft/<id>.json`, fill every null from your POH, then
 `EFATO_AIRCRAFT=<id> .venv/bin/python run_baseline.py`. Flags: `--reaction --bank --bank-after --weight --isa-dev --startle`.
 
 ## Where the numbers come from

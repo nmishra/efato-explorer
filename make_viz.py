@@ -6,7 +6,7 @@ Usage: python make_viz.py
 import json, os
 here = os.path.dirname(os.path.abspath(__file__))
 cfg = os.path.join(here, "config")
-BUILTIN = ["sr22t"]
+BUILTIN = ["sr22t", "c172s", "c182t", "e1000"]
 apt = json.load(open(os.path.join(cfg, "airport_ksjc.json")))
 # KSJC fallback in the same shape the browser builds from the OurAirports runway database
 rw = {}

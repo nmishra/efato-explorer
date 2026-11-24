@@ -7,7 +7,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 class Ctx{
   constructor(ac,apt,sc){
-    this.ac=ac;this.apt=apt;this.sc=sc;this.S=ac.wing_area_ft2;this.W=sc.weight_lb;const Wref=ac.ref_weight_lb;this.Wref=Wref;
+    this.ac=ac;this.apt=apt;this.sc=sc;this.S=ac.wing_area_ft2||150;this.W=sc.weight_lb;const Wref=ac.ref_weight_lb;this.Wref=Wref;
     this.rho=rhoF(apt.elevation_ft,sc.isa_dev_c);this.sig=this.rho/RHO0;this.sqs=Math.sqrt(this.sig);
     const vbg=ac.glide.vbg_kias_ref*KT,ld=ac.glide.glide_ratio_ref,cls=2*Wref/(RHO0*this.S*vbg*vbg),cd0=cls/(2*ld);
     this.k=cd0/(cls*cls);const fl=String(sc.flaps_pct);this.CD0=cd0+ac.flap_cd0_delta[fl];

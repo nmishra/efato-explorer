@@ -122,7 +122,7 @@ textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
         <div class="form">
           <label>Name<input id="f_name" type="text"></label>
           <label>Max takeoff weight (lb)<input id="f_mtow" type="number"></label>
-          <label>Wing area (ft²)<input id="f_wing" type="number" step="0.1"></label>
+          <label>Wing area (ft², optional)<input id="f_wing" type="number" step="0.1"></label>
           <label>Rotation speed (KIAS)<input id="f_vr" type="number"></label>
           <label>Takeoff climb speed (KIAS)<input id="f_vy" type="number"></label>
           <label>Climb rate at that speed (fpm)<input id="f_roc" type="number"></label>
@@ -213,7 +213,7 @@ function fillForm(p){$('f_name').value=p.name||'';FIELDS.forEach(([id,g])=>{cons
   const c=p.caps;$('f_caps').checked=!!c;$('f_cmin').value=c?c.min_agl_level_ft:'';$('f_cspd').value=c?c.max_deploy_kias:'';$('f_closs').value=c?c.altitude_loss_to_inflate_ft:'';$('f_cdesc').value=c?c.descent_rate_fpm:'';}
 function readForm(){const n=id=>parseFloat($(id).value);const miss=[];
   const need=(id,label)=>{const v=n(id);if(!(v>0))miss.push(label);return v;};
-  const mtow=need('f_mtow','max weight'),wing=need('f_wing','wing area'),vr=need('f_vr','rotation speed'),vy=need('f_vy','climb speed'),roc=need('f_roc','climb rate'),
+  const mtow=need('f_mtow','max weight'),wing=n('f_wing')>0?n('f_wing'):null,vr=need('f_vr','rotation speed'),vy=need('f_vy','climb speed'),roc=need('f_roc','climb rate'),
     gr=need('f_gr','takeoff ground roll'),vbg=need('f_vbg','best glide speed'),vs0=need('f_vs0','stall flaps up'),vs50=need('f_vs50','stall takeoff flaps'),
     vs100=need('f_vs100','stall landing flaps'),lr=need('f_lr','landing roll'),vtd=need('f_vtd','touchdown speed');
   let ld=n('f_ld');if(!(ld>0)){const nm=n('f_nm');if(nm>0)ld=nm*NM/1000;}if(!(ld>0))miss.push('glide ratio (or NM per 1000 ft)');
@@ -485,7 +485,7 @@ function init(){
   $('f_save').onclick=()=>{const r=readForm();if(r.err){msg(r.err);return;}const id='u_'+r.p.name.toLowerCase().replace(/[^a-z0-9]+/g,'_');r.p.id=id;PROF[id]=r.p;delete PROF.unsaved;st.ac=id;st.wt=Math.round(r.p.max_weight_lb*.94/10)*10;
     fillAcSelect();anim=null;acUI();refresh(true);msg(saveSaved()?'Saved in this browser.':'Could not save (browser storage blocked); the profile is still in use for this session.');};
   $('f_export').onclick=()=>{const r=readForm();if(r.err){msg(r.err);return;}const t=$('f_json');t.value=JSON.stringify(r.p,null,1);t.hidden=false;t.select();msg('Copy this JSON, or save it as a .json file to re-import later or to use with the Python tools.');};
-  $('f_import').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const p=JSON.parse(rd.result);if(!p.takeoff||!p.glide||!p.wing_area_ft2)throw new Error('not a profile');
+  $('f_import').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const p=JSON.parse(rd.result);if(!p.takeoff||!p.glide)throw new Error('not a profile');
       p.id='unsaved';PROF.unsaved=p;st.ac='unsaved';fillForm(p);st.wt=Math.round(p.max_weight_lb*.94/10)*10;fillAcSelect();anim=null;acUI();refresh(true);msg('Imported.');}catch(err){msg('Could not read that file: '+err.message);}};rd.readAsText(f);};
   const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let down=null;
   cv.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});

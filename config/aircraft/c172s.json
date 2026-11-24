@@ -1,0 +1,54 @@
+{
+ "_note": "Numbers from the aircraft POH (see _sources). Model assumptions: flap_cd0_delta, landing roll_margin_factor, pilot block.",
+ "id": "c172s",
+ "name": "Cessna 172S (POH)",
+ "max_weight_lb": 2550,
+ "ref_weight_lb": 2550,
+ "wing_area_ft2": 174,
+ "takeoff": {
+  "vr_kias": 51,
+  "vy_kias": 74,
+  "roc_ref_fpm": 747,
+  "ground_roll_ref_ft": 960,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 1.5
+ },
+ "glide": {
+  "vbg_kias_ref": 68,
+  "glide_ratio_ref": 9.1
+ },
+ "stall_kias_ref": {
+  "0": 48,
+  "50": 42,
+  "100": 40
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": 575,
+  "touchdown_kias": 61,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {
+  "wing_area": "Sec 1: wing area 174 sq ft",
+  "vr": "Sec 5 Short Field Takeoff Distance, flaps 10 deg, 2550 lb: lift-off 51 KIAS",
+  "ground_roll": "Sec 5 Short Field Takeoff Distance, SL: 925 ft at 10C and 995 ft at 20C -> 960 ft at ISA 15C; density exponent from the 4000 ft row (1305 ft at ISA 7C)",
+  "climb": "Sec 5 Rate of Climb, flaps up, SL: 74 KIAS, 785 fpm at 0C and 710 fpm at 20C -> 747 fpm at ISA",
+  "glide": "Sec 3 Figure 3-1: 68 KIAS, flaps up, prop windmilling; ~18 NM from 12,000 ft read off the chart -> L/D about 9.1 (chart reading, +/-0.3)",
+  "stall": "Sec 5 Stall Speeds 2550 lb, 0 deg bank, aft CG, KIAS: flaps up 48, 10 deg 42, 30 deg 40",
+  "landing": "Sec 5 Short Field Landing Distance, flaps 30, SL: ground roll 565 ft at 10C and 585 ft at 20C -> 575 ft; 61 KIAS over 50 ft",
+  "weight_exponent": "POH gives a single weight; model default 1.8"
+ }
+}

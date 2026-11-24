@@ -1,0 +1,54 @@
+{
+ "_note": "Numbers from the aircraft POH (see _sources). Model assumptions: flap_cd0_delta, landing roll_margin_factor, pilot block.",
+ "id": "c182t",
+ "name": "Cessna 182T Skylane (POH)",
+ "max_weight_lb": 3100,
+ "ref_weight_lb": 3100,
+ "wing_area_ft2": 174,
+ "takeoff": {
+  "vr_kias": 49,
+  "vy_kias": 80,
+  "roc_ref_fpm": 942,
+  "ground_roll_ref_ft": 795,
+  "ground_roll_weight_exp": 1.8,
+  "ground_roll_sigma_exp": 1.4
+ },
+ "glide": {
+  "vbg_kias_ref": 76,
+  "glide_ratio_ref": 7.9
+ },
+ "stall_kias_ref": {
+  "0": 50,
+  "50": 43,
+  "100": 40
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": 620,
+  "touchdown_kias": 60,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {
+  "wing_area": "Sec 1: wing area 174 sq ft",
+  "vr": "Sec 5 Short Field Takeoff Distance, flaps 20 deg, 3100 lb: lift-off 49 KIAS",
+  "ground_roll": "Sec 5 Short Field Takeoff Distance, SL: 765 ft at 10C and 825 ft at 20C -> 795 ft at ISA 15C; density exponent from the 4000 ft row",
+  "climb": "Sec 5 Rate of Climb, flaps up, SL: 80 KIAS, 980 fpm at 0C and 905 fpm at 20C -> 942 fpm at ISA",
+  "glide": "Sec 3 Figure 3-1: best glide 76 KIAS at 3100 lb; ground distance about 7.8 NM from 6,000 ft read off the chart -> L/D about 7.9 (chart reading, +/-0.3)",
+  "stall": "Sec 5 Stall Speeds 3100 lb, 0 deg bank, aft CG, KIAS: flaps up 50, 20 deg 43, full 40",
+  "landing": "Sec 5 Short Field Landing Distance is for 2950 lb: ground roll 590 ft at SL ISA, 60 KIAS over 50 ft; scaled linearly to 3100 lb = 620 ft",
+  "weight_exponent": "POH gives a single weight; model default 1.8"
+ }
+}

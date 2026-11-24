@@ -1,0 +1,53 @@
+{
+ "_note": "Numbers from the aircraft POH (see _sources). Model assumptions: flap_cd0_delta, landing roll_margin_factor, pilot block.",
+ "id": "e1000",
+ "name": "Epic E1000 GX (POH)",
+ "max_weight_lb": 8000,
+ "ref_weight_lb": 8000,
+ "wing_area_ft2": null,
+ "takeoff": {
+  "vr_kias": 90,
+  "vy_kias": 150,
+  "roc_ref_fpm": 2652,
+  "ground_roll_ref_ft": 1654,
+  "ground_roll_weight_exp": 2.03,
+  "ground_roll_sigma_exp": 0.89
+ },
+ "glide": {
+  "vbg_kias_ref": 129,
+  "glide_ratio_ref": 15.0
+ },
+ "stall_kias_ref": {
+  "0": 88,
+  "50": 85,
+  "100": 68
+ },
+ "flap_cd0_delta": {
+  "0": 0.0,
+  "50": 0.012,
+  "100": 0.04
+ },
+ "landing": {
+  "roll_ref_ft": 1338,
+  "touchdown_kias": 95,
+  "roll_margin_factor": 1.25
+ },
+ "caps": null,
+ "pilot": {
+  "turn_speed_margin_vs": 1.15,
+  "max_roll_rate_deg_s": 15,
+  "speed_time_const_s": 2.0,
+  "gamma_time_const_s": 1.0,
+  "arrival_margin_req_ft": 50,
+  "max_align_err_deg": 30
+ },
+ "_sources": {
+  "wing_area": "Not stated in the POH; the model does not need it (it cancels once glide ratio and stall speed are given)",
+  "vr": "Sec 5.10 Takeoff Performance conditions: rotate 90 KIAS",
+  "ground_roll": "Sec 5.10.2.3 Takeoff 8,000 lb, flaps T/O, SL ISA: ground roll 1654 ft; weight exponent from 6,000 lb (921 ft) and 7,000 lb (1260 ft) rows = 2.03; density exponent from 4000 ft (1986 ft) = 0.89",
+  "climb": "Sec 5.11.3 Rate of Climb 8,000 lb, gear and flaps up, SL ISA: 2652 fpm at 150 KIAS (Sec 5.11 conditions)",
+  "glide": "Sec 3.1 Best glide (propeller feathered) 129 KIAS all weights; Sec 3 glide chart: 15:1 glide ratio",
+  "stall": "Sec 5.7 Stall Speeds 8,000 lb, 0 deg bank: gear up/flaps up 88, gear down/flaps T/O 85, flaps FULL 68 KIAS",
+  "landing": "Sec 5.14.2.3 Landing 7,600 lb, flaps FULL, SL ISA: ground roll 1271 ft, scaled linearly to 8,000 lb = 1338 ft; approach 95 KIAS"
+ }
+}
