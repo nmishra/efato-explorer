@@ -544,7 +544,7 @@ function init(){
   (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;const spd=+$('spd').value;
     if(anim&&anim.on){anim.t+=dt*[0,.5,1,2,4,8,12,20,30][spd];if(anim.t>=anim.T){anim.t=anim.T;anim.on=false;}
       const pos=placePlane(anim.t);if(st.chase){const dl=pos.clone().sub(controls.target).multiplyScalar(.12);controls.target.add(dl);camera.position.add(dl);}}
-    controls.update();renderer.render(scene,camera);})(last);
+    controls.update();if(plane){const d=camera.position.distanceTo(plane.position);plane.scale.setScalar(Math.max(1.35,Math.min(40,d*0.012)));}renderer.render(scene,camera);})(last);
 }
 try{st.hi=Math.max(0,HEIGHTS.indexOf(800));init();}catch(e){document.getElementById('hudsub').textContent='Could not start: '+e;}
 })();
