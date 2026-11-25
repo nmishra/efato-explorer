@@ -1522,11 +1522,38 @@ function tube(pts,color,r){const v=[];pts.forEach(p=>{if(!v.length||v[v.length-1
   return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(400,v.length*4),r,6,false),new THREE.MeshBasicMaterial({color}));}
 function dashed(pts,color){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineDashedMaterial({color,dashSize:.9,gapSize:.6}));l.computeLineDistances();return l;}
 function flat(pts,color,op){return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p.x,0.04,p.z))),new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));}
-function makePlane(){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:theme.ink});
-  const f=new THREE.Mesh(new THREE.CylinderGeometry(.16,.09,2.2,10),m);f.rotation.z=Math.PI/2;g.add(f);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(.45,.04,3.2),m);w.position.x=.15;g.add(w);
-  const t=new THREE.Mesh(new THREE.BoxGeometry(.3,.04,1),m);t.position.x=-1;g.add(t);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(.4,.55,.04),m);fin.position.set(-1,.27,0);g.add(fin);g.renderOrder=6;return g;}
+function makePlane(){
+  const g=new THREE.Group(),B=c=>new THREE.MeshBasicMaterial({color:c}),edge=new THREE.LineBasicMaterial({color:0x0b1220,transparent:true,opacity:.7});
+  const add=(geo,col,x,y,z,outline)=>{const m=new THREE.Mesh(geo,B(col));m.position.set(x||0,y||0,z||0);g.add(m);
+    if(outline){const l=new THREE.LineSegments(new THREE.EdgesGeometry(geo,35),edge);l.position.copy(m.position);l.rotation.copy(m.rotation);m.userData.l=l;g.add(l);}return m;};
+  // fuselage: tapered body of revolution, nose toward +x
+  const prof=[[.01,-1.15],[.05,-.9],[.1,-.5],[.17,-.05],[.19,.3],[.17,.75],[.1,1.0],[.03,1.1]].map(p=>new THREE.Vector2(p[0],p[1]));
+  const fg=new THREE.LatheGeometry(prof,18);const fu=add(fg,0xf3f6fb,0,0,0,false);fu.rotation.z=-Math.PI/2;
+  // blue belly stripe
+  const st=add(new THREE.CylinderGeometry(.195,.175,.5,18,1,true,Math.PI*.7,Math.PI*.6),0x2563eb,.1,-.02,0);st.rotation.z=Math.PI/2;
+  // canopy
+  const cp=add(new THREE.SphereGeometry(.17,14,10,0,Math.PI*2,0,Math.PI/2),0x16314f,.3,.12,0);cp.scale.set(1.7,1.1,.9);
+  // spinner + prop disc
+  const sp=add(new THREE.ConeGeometry(.07,.2,14),0xe11d48,1.2,0,0);sp.rotation.z=-Math.PI/2;
+  const pr=add(new THREE.BoxGeometry(.015,.04,1.3),0x111827,1.3,0,0);
+  // wing (tapered, slight sweep) + tips
+  const wingShape=(root,tip,half,sx,th,col,x,y)=>{const sh=new THREE.Shape();
+    sh.moveTo(root/2,0);sh.lineTo(tip/2+sx,half);sh.lineTo(-tip/2+sx,half);sh.lineTo(-root/2,0);sh.lineTo(-tip/2+sx,-half);sh.lineTo(tip/2+sx,-half);sh.closePath();
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false});geo.rotateX(-Math.PI/2);geo.translate(0,-th/2,0);
+    return add(geo,col,x,y,0,true);};
+  wingShape(.55,.32,1.75,-.08,.045,0xe8edf5,.15,-.06);
+  // wing tip accents
+  [-1,1].forEach(d=>add(new THREE.BoxGeometry(.3,.05,.12),0x2563eb,.07,-.06,d*1.7));
+  // tailplane
+  wingShape(.38,.22,.6,-.06,.035,0xe8edf5,-.95,.0);
+  // fin
+  const fs=new THREE.Shape();fs.moveTo(.2,0);fs.lineTo(-.18,0);fs.lineTo(-.34,.55);fs.lineTo(-.12,.55);fs.closePath();
+  const fgeo=new THREE.ExtrudeGeometry(fs,{depth:.035,bevelEnabled:false});fgeo.translate(0,0,-.0175);
+  add(fgeo,0x2563eb,-.9,.05,0,true);
+  // main gear stubs
+  [-1,1].forEach(d=>{add(new THREE.CylinderGeometry(.075,.075,.05,10),0x111827,.35,-.3,d*.28).rotation.x=Math.PI/2;});
+  g.scale.setScalar(1.35);g.renderOrder=6;
+  g.traverse(o=>{if(o.material)o.material.depthTest=true;});return g;}
 function dispose(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material){(c.material.map&&!c.material.map.keep)&&c.material.map.dispose();c.material.dispose();}});}
 const circle=(cx,cz,r,y,col,op)=>{const p=[];for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;p.push(new THREE.Vector3((cx+Math.cos(a)*r)*S,y,(cz+Math.sin(a)*r)*S));}
   return new THREE.Line(new THREE.BufferGeometry().setFromPoints(p),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op}));};
@@ -1598,7 +1625,6 @@ function pathFor(mode){const c=cur();let pts=c.climb.slice();
 function sample(pts,t){if(t<=pts[0][0])return {i:0,f:0};for(let i=1;i<pts.length;i++){if(t<=pts[i][0]){const a=pts[i-1],b=pts[i];return {i:i-1,f:(t-a[0])/Math.max(b[0]-a[0],1e-6)};}}return {i:pts.length-2,f:1};}
 function placePlane(t){
   if(!plane){plane=makePlane();scene.add(plane);}
-  plane.traverse(o=>{if(o.material)o.material.color.set(inkC())});
   const pts=anim?anim.pts:pathFor(null),tt=anim?t:cur().tc,s=sample(pts,tt),a=pts[s.i],b=pts[s.i+1];
   const pa=P(a[1],a[2],a[3]),pb=P(b[1],b[2],b[3]),pos=pa.clone().lerp(pb,s.f);plane.position.copy(pos);
   const dir=pb.clone().sub(pa);if(dir.lengthSq()>1e-8){dir.normalize();plane.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);}
