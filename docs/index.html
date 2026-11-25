@@ -1627,7 +1627,17 @@ function placePlane(t){
   if(!plane){plane=makePlane();scene.add(plane);}
   const pts=anim?anim.pts:pathFor(null),tt=anim?t:cur().tc,s=sample(pts,tt),a=pts[s.i],b=pts[s.i+1];
   const pa=P(a[1],a[2],a[3]),pb=P(b[1],b[2],b[3]),pos=pa.clone().lerp(pb,s.f);plane.position.copy(pos);
-  const dir=pb.clone().sub(pa);if(dir.lengthSq()>1e-8){dir.normalize();plane.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);}
+  const dir=pb.clone().sub(pa);
+  if(dir.lengthSq()>1e-8){
+    const hd=v=>Math.atan2(-v.z,v.x),yaw=hd(dir),pitch=Math.atan2(dir.y,Math.hypot(dir.x,dir.z));
+    let target=0;const c2=pts[s.i+2];
+    if(c2){const pc=P(c2[1],c2[2],c2[3]),d2=pc.clone().sub(pb);
+      if(Math.hypot(d2.x,d2.z)>1e-6&&Math.hypot(dir.x,dir.z)>1e-6){let dh=hd(d2)-yaw;dh=Math.atan2(Math.sin(dh),Math.cos(dh));
+        const dt=Math.max(((c2[0]+b[0])-(b[0]+a[0]))/2,.05),V=Math.max(b[4]||0,30)*0.5144;
+        target=Math.max(-.9,Math.min(.9,Math.atan(-(dh/dt)*V/9.81)));}}
+    plane.userData.roll=(plane.userData.roll||0)*.85+target*.15;
+    plane.rotation.order='YZX';plane.rotation.set(plane.userData.roll,yaw,pitch);
+  }
   const hh=a[3]+(b[3]-a[3])*s.f,ias=a[4]+(b[4]-a[4])*s.f,vs=(b[3]-a[3])/Math.max(b[0]-a[0],1e-6)*60,msl=hh+AP.elevation_ft;
   $('readout').innerHTML=`IAS <b>${ias>1?fmt(ias):'—'}</b> kt · AGL <b>${fmt(Math.max(0,hh))}</b> ft · MSL ${fmt(msl)} ft · VS <b>${vs>=0?'+':'−'}${fmt(Math.abs(vs))}</b> fpm · t ${tt.toFixed(1)} s`;
   drawProfile(anim?anim.mode:'straight',tt);return pos;}
